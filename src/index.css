@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Couleurs principales INSPC */
+  --primary-violet: #6B2C91;
+  --secondary-green: #2D8A47;
+  --accent-gold: #D4AF37;
+  --white: #FFFFFF;
+  
+  /* Textes */
+  --text-primary: #2C1810;
+  --text-secondary: #5A4A42;
+  
+  /* Fonds */
+  --bg-light: #F8F7F5;
+  --bg-white: #FFFFFF;
+  
+  /* Bordures */
+  --border-light: #E5E0DB;
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+}
