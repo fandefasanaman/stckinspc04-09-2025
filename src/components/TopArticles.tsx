@@ -97,7 +97,7 @@ const TopArticles: React.FC = () => {
                   </p>
                   <div className="flex items-center text-xs" style={{ color: '#5A4A42' }}>
                     <Package className="w-3 h-3 mr-1" />
-                    Stock: {article.currentStock}
+                    Stock : {article.currentStock}
                   </div>
                 </div>
               </div>

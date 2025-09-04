@@ -209,9 +209,6 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
               Activité par Service
             </h3>
-            <div className="text-sm" style={{ color: '#00A86B' }}>
-              Ce mois
-            </div>
             <div className="text-sm" style={{ color: '#2D8A47' }}>
               Ce mois
             </div>

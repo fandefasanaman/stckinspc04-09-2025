@@ -198,7 +198,7 @@ const Movements: React.FC = () => {
           <button 
             onClick={stockExitModal.openModal}
             className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#2D8A47' }}
+            style={{ backgroundColor: '#6B2C91' }}
           >
             <ArrowDown className="w-4 h-4 mr-2" />
             Sortie Stock
