@@ -13,6 +13,7 @@ import StatsCard from '../components/StatsCard';
 import StockAlerts from '../components/StockAlerts';
 import TopArticles from '../components/TopArticles';
 import RecentMovements from '../components/RecentMovements';
+import DonutChart from '../components/DonutChart';
 import MadagascarPattern from '../components/MadagascarPattern';
 
 const Dashboard: React.FC = () => {
@@ -109,6 +110,34 @@ const Dashboard: React.FC = () => {
     }
   ];
 
+  // Données pour le graphique circulaire - Répartition par catégorie
+  const categoryData = [
+    {
+      name: 'Fournitures Bureau',
+      value: 42,
+      color: '#6B2C91',
+      description: 'Papeterie, stylos, classeurs'
+    },
+    {
+      name: 'Consommables Médicaux',
+      value: 28,
+      color: '#2D8A47',
+      description: 'Gants, seringues, désinfectants'
+    },
+    {
+      name: 'Consommables IT',
+      value: 22,
+      color: '#D4AF37',
+      description: 'Cartouches, câbles, accessoires'
+    },
+    {
+      name: 'Produits Entretien',
+      value: 8,
+      color: '#DC143C',
+      description: 'Nettoyants, produits d\'hygiène'
+    }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Madagascar Pattern Easter Egg */}
@@ -185,20 +214,31 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* Stock Alerts - Takes 1 column */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <StockAlerts />
         </div>
 
         {/* Recent Movements - Takes 1 column */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <RecentMovements />
         </div>
 
         {/* Top Articles - Takes 1 column */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <TopArticles />
+        </div>
+
+        {/* Donut Chart - Takes 1 column */}
+        <div className="xl:col-span-1">
+          <DonutChart
+            title="Répartition par Catégorie"
+            subtitle="Distribution des sorties par type d'articles"
+            data={categoryData}
+            centerText="Articles"
+            centerValue="247"
+          />
         </div>
       </div>
 
