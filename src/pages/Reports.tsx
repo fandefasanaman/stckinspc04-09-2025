@@ -10,14 +10,22 @@ import {
   Building
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { useAuth } from '../contexts/AuthContext';
+import { ReportService, ReportConfig } from '../services/reportService';
 import ReportGeneratorModal from '../components/modals/ReportGeneratorModal';
 import AdvancedFiltersModal from '../components/modals/AdvancedFiltersModal';
 
 const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedService, setSelectedService] = useState('all');
+  const [loading, setLoading] = useState(false);
   const reportGeneratorModal = useModal();
   const advancedFiltersModal = useModal();
+  const { userData } = useAuth();
+
+  // Utiliser le hook useFirestore pour récupérer les configurations de rapports
+  const { data: reportConfigs, loading: reportsLoading, error } = useFirestore<ReportConfig>('reports');
 
   const periods = [
     { value: 'week', label: 'Cette semaine' },
@@ -135,9 +143,31 @@ const Reports: React.FC = () => {
     { month: 'Jan 2024', entries: 67, exits: 267 }
   ];
 
-  const handleReportGeneration = (reportConfig: any) => {
-    console.log('Génération rapport:', reportConfig);
-    // Logique pour générer le rapport
+  const handleReportGeneration = async (reportConfigData: any) => {
+    if (!userData) return;
+    
+    setLoading(true);
+    try {
+      await ReportService.createReportConfig({
+        name: `Rapport ${reportConfigData.type} - ${new Date().toLocaleDateString()}`,
+        type: reportConfigData.type,
+        period: reportConfigData.period,
+        format: reportConfigData.format,
+        includeCharts: reportConfigData.includeCharts,
+        includeDetails: reportConfigData.includeDetails,
+        services: reportConfigData.services,
+        categories: reportConfigData.categories,
+        createdBy: userData.id
+      });
+      
+      // Ici vous pourriez ajouter la logique de génération réelle du rapport
+      alert('Configuration de rapport sauvegardée avec succès !');
+    } catch (error: any) {
+      console.error('Erreur lors de la sauvegarde de la configuration:', error);
+      alert('Erreur lors de la sauvegarde: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAdvancedFilters = (filtersData: any) => {
@@ -149,6 +179,14 @@ const Reports: React.FC = () => {
     console.log('Export des données');
     // Logique pour exporter les données
   };
+
+  if (reportsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -181,11 +219,12 @@ const Reports: React.FC = () => {
           </button>
           <button 
             onClick={reportGeneratorModal.openModal}
+            disabled={loading}
             className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#6B2C91' }}
           >
             <BarChart3 className="w-4 h-4 mr-2" />
-            Générer Rapport
+            {loading ? 'Sauvegarde...' : 'Générer Rapport'}
           </button>
         </div>
       </div>
@@ -453,6 +492,48 @@ const Reports: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Saved Report Configurations */}
+      {reportConfigs.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
+              Configurations de Rapports Sauvegardées
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Configurations de rapports créées précédemment
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {reportConfigs.slice(0, 6).map((config) => (
+                <div key={config.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 truncate">{config.name}</h4>
+                    <span 
+                      className="px-2 py-1 text-xs font-medium rounded-full"
+                      style={{ backgroundColor: '#6B2C9120', color: '#6B2C91' }}
+                    >
+                      {config.format.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Type: {config.type} | Période: {config.period}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Créé le {new Date(config.createdAt).toLocaleDateString()}
+                  </p>
+                  {config.lastGenerated && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Dernière génération: {new Date(config.lastGenerated).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <ReportGeneratorModal

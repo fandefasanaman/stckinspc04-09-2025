@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, Save, Package } from 'lucide-react';
+import { useFirestore } from '../../hooks/useFirestore';
+import { Article } from '../../types';
 
 interface StockEntryModalProps {
   isOpen: boolean;
@@ -10,18 +12,15 @@ interface StockEntryModalProps {
 const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     articleCode: '',
+    articleId: '',
     quantity: '',
     supplier: '',
     reference: '',
     notes: ''
   });
 
-  const articles = [
-    { code: 'FB001', name: 'Papier A4 80g', unit: 'paquet' },
-    { code: 'IT002', name: 'Cartouches HP 305', unit: 'unité' },
-    { code: 'MED003', name: 'Gants latex M', unit: 'boîte' },
-    { code: 'ENT005', name: 'Désinfectant surfaces', unit: 'litre' }
-  ];
+  // Récupérer les articles depuis Firestore
+  const { data: articles } = useFirestore<Article>('articles');
 
   const suppliers = [
     'PHARMADIS MADAGASCAR',
@@ -43,6 +42,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     });
     setFormData({
       articleCode: '',
+      articleId: '',
       quantity: '',
       supplier: '',
       reference: '',
@@ -51,9 +51,18 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     onClose();
   };
 
+  const handleArticleChange = (articleId: string) => {
+    const selectedArticle = articles.find(a => a.id === articleId);
+    setFormData({ 
+      ...formData, 
+      articleId,
+      articleCode: selectedArticle?.code || ''
+    });
+  };
+
   if (!isOpen) return null;
 
-  const selectedArticle = articles.find(a => a.code === formData.articleCode);
+  const selectedArticle = articles.find(a => a.id === formData.articleId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -81,14 +90,14 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               </label>
               <select
                 required
-                value={formData.articleCode}
-                onChange={(e) => setFormData({ ...formData, articleCode: e.target.value })}
+                value={formData.articleId}
+                onChange={(e) => handleArticleChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': '#00A86B' } as any}
               >
                 <option value="">Sélectionner un article</option>
                 {articles.map(article => (
-                  <option key={article.code} value={article.code}>
+                  <option key={article.id} value={article.id}>
                     {article.code} - {article.name}
                   </option>
                 ))}

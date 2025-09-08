@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowDown, Save } from 'lucide-react';
+import { useFirestore } from '../../hooks/useFirestore';
+import { Article } from '../../types';
 
 interface StockExitModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface StockExitModalProps {
 const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     articleCode: '',
+    articleId: '',
     quantity: '',
     service: '',
     beneficiary: '',
@@ -18,12 +21,8 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
     notes: ''
   });
 
-  const articles = [
-    { code: 'FB001', name: 'Papier A4 80g', unit: 'paquet', currentStock: 150 },
-    { code: 'IT002', name: 'Cartouches HP 305', unit: 'unité', currentStock: 25 },
-    { code: 'MED003', name: 'Gants latex M', unit: 'boîte', currentStock: 75 },
-    { code: 'ENT005', name: 'Désinfectant surfaces', unit: 'litre', currentStock: 40 }
-  ];
+  // Récupérer les articles depuis Firestore
+  const { data: articles } = useFirestore<Article>('articles');
 
   const services = [
     'Service Pédagogique et Scientifique',
@@ -49,6 +48,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
     });
     setFormData({
       articleCode: '',
+      articleId: '',
       quantity: '',
       service: '',
       beneficiary: '',
@@ -59,9 +59,18 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
     onClose();
   };
 
+  const handleArticleChange = (articleId: string) => {
+    const selectedArticle = articles.find(a => a.id === articleId);
+    setFormData({ 
+      ...formData, 
+      articleId,
+      articleCode: selectedArticle?.code || ''
+    });
+  };
+
   if (!isOpen) return null;
 
-  const selectedArticle = articles.find(a => a.code === formData.articleCode);
+  const selectedArticle = articles.find(a => a.id === formData.articleId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -89,14 +98,14 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
               </label>
               <select
                 required
-                value={formData.articleCode}
-                onChange={(e) => setFormData({ ...formData, articleCode: e.target.value })}
+                value={formData.articleId}
+                onChange={(e) => handleArticleChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': '#DC143C' } as any}
               >
                 <option value="">Sélectionner un article</option>
                 {articles.map(article => (
-                  <option key={article.code} value={article.code}>
+                  <option key={article.id} value={article.id}>
                     {article.code} - {article.name} (Stock: {article.currentStock})
                   </option>
                 ))}

@@ -10,12 +10,19 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { ArticleService } from '../services/articleService';
 import NewArticleModal from '../components/modals/NewArticleModal';
+import { Article } from '../types';
 
 const Articles: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [loading, setLoading] = useState(false);
   const newArticleModal = useModal();
+
+  // Utiliser le hook useFirestore pour récupérer les articles en temps réel
+  const { data: articles, loading: articlesLoading, error } = useFirestore<Article>('articles');
 
   const categories = [
     { value: 'all', label: 'Toutes catégories' },
@@ -23,79 +30,6 @@ const Articles: React.FC = () => {
     { value: 'informatique', label: 'Consommables IT' },
     { value: 'medical', label: 'Consommables Médicaux' },
     { value: 'entretien', label: 'Produits Entretien' }
-  ];
-
-  const articles = [
-    {
-      id: 1,
-      code: 'FB001',
-      name: 'Papier A4 80g',
-      category: 'Fournitures Bureau',
-      unit: 'paquet',
-      currentStock: 150,
-      minStock: 20,
-      maxStock: 500,
-      unitPrice: 2500,
-      supplier: 'PAPETERIE MODERNE',
-      status: 'normal',
-      lastEntry: '2024-01-15'
-    },
-    {
-      id: 2,
-      code: 'IT002',
-      name: 'Cartouches HP 305',
-      category: 'Consommables IT',
-      unit: 'unité',
-      currentStock: 5,
-      minStock: 10,
-      maxStock: 50,
-      unitPrice: 15000,
-      supplier: 'TECH SUPPLIES',
-      status: 'low',
-      lastEntry: '2024-01-10'
-    },
-    {
-      id: 3,
-      code: 'MED003',
-      name: 'Gants latex M',
-      category: 'Consommables Médicaux',
-      unit: 'boîte',
-      currentStock: 75,
-      minStock: 25,
-      maxStock: 200,
-      unitPrice: 8500,
-      supplier: 'MEDICAL PLUS',
-      status: 'normal',
-      lastEntry: '2024-01-12'
-    },
-    {
-      id: 4,
-      code: 'IT004',
-      name: 'Câbles USB-C',
-      category: 'Consommables IT',
-      unit: 'unité',
-      currentStock: 0,
-      minStock: 5,
-      maxStock: 30,
-      unitPrice: 3200,
-      supplier: 'TECH SUPPLIES',
-      status: 'out',
-      lastEntry: '2023-12-20'
-    },
-    {
-      id: 5,
-      code: 'ENT005',
-      name: 'Désinfectant surfaces',
-      category: 'Produits Entretien',
-      unit: 'litre',
-      currentStock: 40,
-      minStock: 15,
-      maxStock: 100,
-      unitPrice: 4800,
-      supplier: 'HYGIENE PRO',
-      status: 'normal',
-      lastEntry: '2024-01-14'
-    }
   ];
 
   const getStatusBadge = (status: string, currentStock: number, minStock: number) => {
@@ -131,10 +65,67 @@ const Articles: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleNewArticle = (articleData: any) => {
-    console.log('Nouvel article:', articleData);
-    // Logique pour sauvegarder l'article
+  const handleNewArticle = async (articleData: any) => {
+    setLoading(true);
+    try {
+      await ArticleService.createArticle({
+        code: articleData.code,
+        name: articleData.name,
+        category: articleData.category,
+        unit: articleData.unit,
+        minStock: parseInt(articleData.minStock),
+        maxStock: parseInt(articleData.maxStock),
+        supplier: articleData.supplier,
+        description: articleData.description
+      });
+      
+      // Le hook useFirestore se mettra à jour automatiquement
+    } catch (error: any) {
+      console.error('Erreur lors de la création de l\'article:', error);
+      alert('Erreur lors de la création de l\'article: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleEditArticle = async (articleId: string, updates: Partial<Article>) => {
+    try {
+      await ArticleService.updateArticle(articleId, updates);
+    } catch (error: any) {
+      console.error('Erreur lors de la modification de l\'article:', error);
+      alert('Erreur lors de la modification: ' + error.message);
+    }
+  };
+
+  const handleDeleteArticle = async (articleId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) return;
+    
+    try {
+      await ArticleService.deleteArticle(articleId);
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression de l\'article:', error);
+      alert('Erreur lors de la suppression: ' + error.message);
+    }
+  };
+
+  if (articlesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">Impossible de charger les articles</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -150,11 +141,12 @@ const Articles: React.FC = () => {
         </div>
         <button 
           onClick={newArticleModal.openModal}
+          disabled={loading}
           className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
           style={{ backgroundColor: '#6B2C91' }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nouvel Article
+          {loading ? 'Création...' : 'Nouvel Article'}
         </button>
       </div>
 
@@ -268,12 +260,19 @@ const Articles: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button 
+                        onClick={() => {
+                          const newStock = prompt('Nouveau stock:', article.currentStock.toString());
+                          if (newStock && !isNaN(parseInt(newStock))) {
+                            handleEditArticle(article.id, { currentStock: parseInt(newStock) });
+                          }
+                        }}
                         className="p-2 rounded-lg hover:bg-gray-100"
                         style={{ color: '#00A86B' }}
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
+                        onClick={() => handleDeleteArticle(article.id)}
                         className="p-2 rounded-lg hover:bg-gray-100"
                         style={{ color: '#DC143C' }}
                       >

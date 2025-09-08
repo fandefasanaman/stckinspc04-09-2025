@@ -11,15 +11,24 @@ import {
   Download
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { useAuth } from '../contexts/AuthContext';
+import { MovementService } from '../services/movementService';
 import StockEntryModal from '../components/modals/StockEntryModal';
 import StockExitModal from '../components/modals/StockExitModal';
+import { Movement } from '../types';
 
 const Movements: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedService, setSelectedService] = useState('all');
+  const [loading, setLoading] = useState(false);
   const stockEntryModal = useModal();
   const stockExitModal = useModal();
+  const { userData } = useAuth();
+
+  // Utiliser le hook useFirestore pour récupérer les mouvements en temps réel
+  const { data: movements, loading: movementsLoading, error } = useFirestore<Movement>('movements');
 
   const movementTypes = [
     { value: 'all', label: 'Tous les mouvements' },
@@ -38,87 +47,6 @@ const Movements: React.FC = () => {
     { value: 'dg', label: 'Direction Générale' },
     { value: 'echo', label: 'Unité d\'Échographie' },
     { value: 'acup', label: 'Unité d\'Acupuncture' }
-  ];
-
-  const movements = [
-    {
-      id: 1,
-      type: 'entry',
-      date: '2024-01-15',
-      time: '10:30',
-      article: 'Papier A4 80g',
-      code: 'FB001',
-      quantity: 50,
-      unit: 'paquets',
-      user: 'Marie Kouassi',
-      service: 'Service Administratif',
-      reference: 'BR-2024-001',
-      supplier: 'PAPETERIE MODERNE',
-      status: 'validated'
-    },
-    {
-      id: 2,
-      type: 'exit',
-      date: '2024-01-15',
-      time: '09:15',
-      article: 'Cartouches HP 305',
-      code: 'IT002',
-      quantity: 3,
-      unit: 'unités',
-      user: 'Jean Koffi',
-      service: 'Service Pédagogique et Scientifique',
-      reference: 'BS-2024-045',
-      beneficiary: 'Secrétariat SPS',
-      reason: 'Remplacement cartouches imprimante',
-      status: 'validated'
-    },
-    {
-      id: 3,
-      type: 'entry',
-      date: '2024-01-14',
-      time: '16:45',
-      article: 'Gants latex M',
-      code: 'MED003',
-      quantity: 100,
-      unit: 'boîtes',
-      user: 'Dr. Aya Traoré',
-      service: 'Unité d\'Échographie',
-      reference: 'BR-2024-002',
-      supplier: 'MEDICAL PLUS',
-      status: 'validated'
-    },
-    {
-      id: 4,
-      type: 'exit',
-      date: '2024-01-14',
-      time: '14:20',
-      article: 'Stylos bille bleu',
-      code: 'FB002',
-      quantity: 20,
-      unit: 'unités',
-      user: 'Paul Diabaté',
-      service: 'Direction Générale',
-      reference: 'BS-2024-046',
-      beneficiary: 'Secrétariat DG',
-      reason: 'Fournitures bureau mensuel',
-      status: 'pending'
-    },
-    {
-      id: 5,
-      type: 'exit',
-      date: '2024-01-14',
-      time: '11:30',
-      article: 'Désinfectant surfaces',
-      code: 'ENT005',
-      quantity: 5,
-      unit: 'litres',
-      user: 'Fatou Bamba',
-      service: 'Service Documentation',
-      reference: 'BS-2024-047',
-      beneficiary: 'Équipe nettoyage',
-      reason: 'Nettoyage locaux',
-      status: 'validated'
-    }
   ];
 
   const getMovementIcon = (type: string) => {
@@ -155,24 +83,84 @@ const Movements: React.FC = () => {
   };
 
   const filteredMovements = movements.filter(movement => {
-    const matchesSearch = movement.article.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         movement.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         movement.user.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = movement.articleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         movement.articleCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         movement.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || movement.type === selectedType;
     const matchesService = selectedService === 'all' || 
                           movement.service.toLowerCase().includes(selectedService);
     return matchesSearch && matchesType && matchesService;
   });
 
-  const handleStockEntry = (entryData: any) => {
-    console.log('Nouvelle entrée:', entryData);
-    // Logique pour enregistrer l'entrée
+  const handleStockEntry = async (entryData: any) => {
+    if (!userData) return;
+    
+    setLoading(true);
+    try {
+      await MovementService.createStockEntry({
+        articleId: entryData.articleId,
+        quantity: parseInt(entryData.quantity),
+        supplier: entryData.supplier,
+        reference: entryData.reference,
+        notes: entryData.notes,
+        userId: userData.id,
+        userName: userData.name,
+        service: userData.service
+      });
+      
+      // Le hook useFirestore se mettra à jour automatiquement
+    } catch (error: any) {
+      console.error('Erreur lors de la création de l\'entrée:', error);
+      alert('Erreur lors de la création de l\'entrée: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleStockExit = (exitData: any) => {
-    console.log('Nouvelle sortie:', exitData);
-    // Logique pour enregistrer la sortie
+  const handleStockExit = async (exitData: any) => {
+    if (!userData) return;
+    
+    setLoading(true);
+    try {
+      await MovementService.createStockExit({
+        articleId: exitData.articleId,
+        quantity: parseInt(exitData.quantity),
+        beneficiary: exitData.beneficiary,
+        reason: exitData.reason,
+        reference: exitData.reference,
+        notes: exitData.notes,
+        userId: userData.id,
+        userName: userData.name,
+        service: userData.service
+      });
+      
+      // Le hook useFirestore se mettra à jour automatiquement
+    } catch (error: any) {
+      console.error('Erreur lors de la création de la sortie:', error);
+      alert('Erreur lors de la création de la sortie: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (movementsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">Impossible de charger les mouvements</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -189,19 +177,21 @@ const Movements: React.FC = () => {
         <div className="flex space-x-3">
           <button 
             onClick={stockEntryModal.openModal}
+            disabled={loading}
             className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#00A86B' }}
           >
             <ArrowUp className="w-4 h-4 mr-2" />
-            Entrée Stock
+            {loading ? 'Traitement...' : 'Entrée Stock'}
           </button>
           <button 
             onClick={stockExitModal.openModal}
+            disabled={loading}
             className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#DC143C' }}
           >
             <ArrowDown className="w-4 h-4 mr-2" />
-            Sortie Stock
+            {loading ? 'Traitement...' : 'Sortie Stock'}
           </button>
         </div>
       </div>
@@ -316,10 +306,10 @@ const Movements: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {movement.article}
+                          {movement.articleName}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {movement.code}
+                          {movement.articleCode}
                         </div>
                       </div>
                     </td>
@@ -331,7 +321,7 @@ const Movements: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <User className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="text-sm text-gray-900">{movement.user}</span>
+                        <span className="text-sm text-gray-900">{movement.userName}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

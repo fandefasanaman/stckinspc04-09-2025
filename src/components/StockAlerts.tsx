@@ -1,54 +1,15 @@
 import React from 'react';
 import { AlertTriangle, Package, Calendar } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
+import { StockAlert } from '../types';
 
 const StockAlerts: React.FC = () => {
-  const alerts = [
-    {
-      id: 1,
-      type: 'low_stock',
-      article: 'Papier A4 80g',
-      currentStock: 5,
-      minStock: 20,
-      category: 'Fournitures Bureau',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      type: 'expiring',
-      article: 'Antiseptique',
-      expiryDate: '2024-02-15',
-      quantity: 12,
-      category: 'Consommables Médicaux',
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      type: 'out_of_stock',
-      article: 'Cartouches HP 305',
-      currentStock: 0,
-      minStock: 5,
-      category: 'Consommables IT',
-      priority: 'critical'
-    },
-    {
-      id: 4,
-      type: 'low_stock',
-      article: 'Gants latex M',
-      currentStock: 8,
-      minStock: 25,
-      category: 'Consommables Médicaux',
-      priority: 'high'
-    },
-    {
-      id: 5,
-      type: 'expiring',
-      article: 'Produit nettoyant',
-      expiryDate: '2024-01-30',
-      quantity: 3,
-      category: 'Produits Entretien',
-      priority: 'low'
-    }
-  ];
+  // Récupérer les alertes depuis Firestore
+  const { data: alerts } = useFirestore<StockAlert>('alerts', [
+    // Filtrer pour ne récupérer que les alertes actives
+    // orderBy('priority', 'desc'),
+    // orderBy('createdAt', 'desc')
+  ]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -85,6 +46,9 @@ const StockAlerts: React.FC = () => {
     }
   };
 
+  // Filtrer les alertes actives et les limiter à 5
+  const activeAlerts = alerts.filter(alert => alert.status === 'active').slice(0, 5);
+
   return (
     <div className="bg-white rounded-lg shadow-sm">
       <div className="p-6 border-b border-gray-200">
@@ -96,13 +60,13 @@ const StockAlerts: React.FC = () => {
             className="px-2 py-1 text-xs font-medium text-white rounded-full"
             style={{ backgroundColor: '#DC143C' }}
           >
-            {alerts.length}
+            {activeAlerts.length}
           </span>
         </div>
       </div>
       
       <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-        {alerts.map((alert) => {
+        {activeAlerts.length > 0 ? activeAlerts.map((alert) => {
           const Icon = getAlertIcon(alert.type);
           const priorityColor = getPriorityColor(alert.priority);
           
@@ -119,7 +83,7 @@ const StockAlerts: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {alert.article}
+                      {alert.articleName}
                     </p>
                     <span 
                       className="px-2 py-1 text-xs font-medium text-white rounded-full"
@@ -134,13 +98,18 @@ const StockAlerts: React.FC = () => {
                   </p>
                   
                   <p className="text-xs mt-1" style={{ color: '#00A86B' }}>
-                    {alert.category}
+                    Créé le {new Date(alert.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
             </div>
           );
-        })}
+        }) : (
+          <div className="p-8 text-center text-gray-500">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>Aucune alerte active</p>
+          </div>
+        )}
       </div>
       
       <div className="p-4 border-t border-gray-200">

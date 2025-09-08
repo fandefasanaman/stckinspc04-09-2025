@@ -13,12 +13,22 @@ import {
   Building
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { useAuth } from '../contexts/AuthContext';
+import { UserService } from '../services/userService';
+import { AuthService } from '../services/authService';
 import NewUserModal from '../components/modals/NewUserModal';
+import { User as UserType } from '../types';
 
 const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+  const [loading, setLoading] = useState(false);
   const newUserModal = useModal();
+  const { userData } = useAuth();
+
+  // Utiliser le hook useFirestore pour récupérer les utilisateurs en temps réel
+  const { data: users, loading: usersLoading, error } = useFirestore<UserType>('users');
 
   const roles = [
     { value: 'all', label: 'Tous les rôles' },
@@ -26,64 +36,6 @@ const Users: React.FC = () => {
     { value: 'manager', label: 'Gestionnaire' },
     { value: 'supervisor', label: 'Responsable Service' },
     { value: 'user', label: 'Utilisateur' }
-  ];
-
-  const users = [
-    {
-      id: 1,
-      name: 'Marie Kouassi',
-      email: 'marie.kouassi@inspc.mg',
-      phone: '+261 34 12 345 67',
-      role: 'admin',
-      service: 'Service Administratif',
-      status: 'active',
-      lastLogin: '2024-01-15 10:30',
-      createdAt: '2023-06-15'
-    },
-    {
-      id: 2,
-      name: 'Dr. Aya Traoré',
-      email: 'aya.traore@inspc.mg',
-      phone: '+261 33 98 765 43',
-      role: 'manager',
-      service: 'Unité d\'Échographie',
-      status: 'active',
-      lastLogin: '2024-01-15 09:15',
-      createdAt: '2023-08-20'
-    },
-    {
-      id: 3,
-      name: 'Jean Koffi',
-      email: 'jean.koffi@inspc.mg',
-      phone: '+261 32 23 456 78',
-      role: 'supervisor',
-      service: 'Service Pédagogique et Scientifique',
-      status: 'active',
-      lastLogin: '2024-01-14 16:45',
-      createdAt: '2023-09-10'
-    },
-    {
-      id: 4,
-      name: 'Paul Diabaté',
-      email: 'paul.diabate@inspc.mg',
-      phone: '+261 34 87 654 32',
-      role: 'user',
-      service: 'Direction Générale',
-      status: 'active',
-      lastLogin: '2024-01-14 14:20',
-      createdAt: '2023-11-05'
-    },
-    {
-      id: 5,
-      name: 'Fatou Bamba',
-      email: 'fatou.bamba@inspc.mg',
-      phone: '+261 33 11 223 34',
-      role: 'user',
-      service: 'Service Documentation',
-      status: 'inactive',
-      lastLogin: '2024-01-10 11:30',
-      createdAt: '2023-12-01'
-    }
   ];
 
   const getRoleBadge = (role: string) => {
@@ -127,9 +79,48 @@ const Users: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  const handleNewUser = (userData: any) => {
-    console.log('Nouvel utilisateur:', userData);
-    // Logique pour créer l'utilisateur
+  const handleNewUser = async (newUserData: any) => {
+    if (!userData) return;
+    
+    setLoading(true);
+    try {
+      // Créer l'utilisateur avec Firebase Auth et Firestore
+      await AuthService.createUser({
+        name: newUserData.name,
+        email: newUserData.email,
+        phone: newUserData.phone,
+        role: newUserData.role,
+        service: newUserData.service,
+        status: 'active'
+      }, newUserData.password);
+      
+      // Le hook useFirestore se mettra à jour automatiquement
+    } catch (error: any) {
+      console.error('Erreur lors de la création de l\'utilisateur:', error);
+      alert('Erreur lors de la création de l\'utilisateur: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUser = async (userId: string, updates: Partial<UserType>) => {
+    try {
+      await UserService.updateUser(userId, updates);
+    } catch (error: any) {
+      console.error('Erreur lors de la modification de l\'utilisateur:', error);
+      alert('Erreur lors de la modification: ' + error.message);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    
+    try {
+      await UserService.deleteUser(userId);
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      alert('Erreur lors de la suppression: ' + error.message);
+    }
   };
 
   const roleStats = {
@@ -138,6 +129,25 @@ const Users: React.FC = () => {
     supervisor: users.filter(u => u.role === 'supervisor').length,
     user: users.filter(u => u.role === 'user').length
   };
+
+  if (usersLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">Impossible de charger les utilisateurs</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -153,11 +163,12 @@ const Users: React.FC = () => {
         </div>
         <button 
           onClick={newUserModal.openModal}
+          disabled={loading}
           className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
           style={{ backgroundColor: '#6B2C91' }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nouvel Utilisateur
+          {loading ? 'Création...' : 'Nouvel Utilisateur'}
         </button>
       </div>
 
@@ -284,12 +295,14 @@ const Users: React.FC = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                   Service
+                      onClick={() => handleEditUser(user.id, { status: user.status === 'active' ? 'inactive' : 'active' })}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                   Rôle
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                   Statut
+                      onClick={() => handleDeleteUser(user.id)}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                   Dernière Connexion

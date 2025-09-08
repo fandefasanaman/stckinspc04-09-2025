@@ -10,51 +10,28 @@ import {
   Package
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { useAuth } from '../contexts/AuthContext';
+import { InventoryService } from '../services/inventoryService';
 import NewInventoryModal from '../components/modals/NewInventoryModal';
+import { Inventory, InventoryItem } from '../types';
 
 const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [loading, setLoading] = useState(false);
   const newInventoryModal = useModal();
+  const { userData } = useAuth();
+
+  // Utiliser le hook useFirestore pour récupérer les inventaires en temps réel
+  const { data: inventories, loading: inventoriesLoading, error } = useFirestore<Inventory>('inventories');
 
   const inventoryStatuses = [
     { value: 'all', label: 'Tous les inventaires' },
+    { value: 'planned', label: 'Planifié' },
     { value: 'in_progress', label: 'En cours' },
     { value: 'completed', label: 'Terminé' },
     { value: 'validated', label: 'Validé' }
-  ];
-
-  const inventories = [
-    {
-      id: 1,
-      name: 'Inventaire Trimestriel Q1 2024',
-      date: '2024-01-15',
-      status: 'completed',
-      responsible: 'Marie Kouassi',
-      articlesCount: 247,
-      discrepancies: 12,
-      category: 'Général'
-    },
-    {
-      id: 2,
-      name: 'Inventaire Consommables Médicaux',
-      date: '2024-01-10',
-      status: 'validated',
-      responsible: 'Dr. Aya Traoré',
-      articlesCount: 89,
-      discrepancies: 3,
-      category: 'Médical'
-    },
-    {
-      id: 3,
-      name: 'Inventaire IT Janvier',
-      date: '2024-01-08',
-      status: 'in_progress',
-      responsible: 'Jean Koffi',
-      articlesCount: 156,
-      discrepancies: 0,
-      category: 'Informatique'
-    }
   ];
 
   const currentInventoryItems = [
@@ -102,6 +79,13 @@ const Inventory: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'planned':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <Calendar className="w-3 h-3 mr-1" />
+            Planifié
+          </span>
+        );
       case 'completed':
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -160,9 +144,56 @@ const Inventory: React.FC = () => {
     );
   };
 
-  const handleNewInventory = (inventoryData: any) => {
-    console.log('Nouvel inventaire:', inventoryData);
-    // Logique pour créer l'inventaire
+  const handleNewInventory = async (inventoryData: any) => {
+    if (!userData) return;
+    
+    setLoading(true);
+    try {
+      await InventoryService.createInventory({
+        name: inventoryData.name,
+        category: inventoryData.category,
+        responsible: inventoryData.responsible,
+        scheduledDate: inventoryData.scheduledDate,
+        status: 'planned',
+        articlesCount: 0,
+        discrepancies: 0,
+        description: inventoryData.description,
+        includeCategories: inventoryData.includeCategories
+      });
+      
+      // Le hook useFirestore se mettra à jour automatiquement
+    } catch (error: any) {
+      console.error('Erreur lors de la création de l\'inventaire:', error);
+      alert('Erreur lors de la création de l\'inventaire: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredInventories = inventories.filter(inventory => {
+    const matchesSearch = inventory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         inventory.responsible.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || inventory.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (inventoriesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">Impossible de charger les inventaires</p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -179,11 +210,12 @@ const Inventory: React.FC = () => {
         </div>
         <button 
           onClick={newInventoryModal.openModal}
+          disabled={loading}
           className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
           style={{ backgroundColor: '#6B2C91' }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nouvel Inventaire
+          {loading ? 'Création...' : 'Nouvel Inventaire'}
         </button>
       </div>
 
@@ -318,7 +350,7 @@ const Inventory: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {inventories.map((inventory) => (
+              {filteredInventories.map((inventory) => (
                 <tr key={inventory.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -331,7 +363,7 @@ const Inventory: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {inventory.date}
+                    {inventory.scheduledDate}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {inventory.responsible}

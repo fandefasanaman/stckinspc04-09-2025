@@ -1,64 +1,31 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, Clock, User } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
+import { Movement } from '../types';
 
 const RecentMovements: React.FC = () => {
-  const movements = [
-    {
-      id: 1,
-      type: 'entry',
-      article: 'Papier A4 80g',
-      quantity: 50,
-      unit: 'paquets',
-      user: 'Marie Kouassi',
-      service: 'Service Administratif',
-      time: '10:30',
-      date: 'Aujourd\'hui'
-    },
-    {
-      id: 2,
-      type: 'exit',
-      article: 'Cartouches HP 305',
-      quantity: 3,
-      unit: 'unités',
-      user: 'Jean Koffi',
-      service: 'Service Pédagogique',
-      time: '09:15',
-      date: 'Aujourd\'hui'
-    },
-    {
-      id: 3,
-      type: 'entry',
-      article: 'Gants latex',
-      quantity: 100,
-      unit: 'boîtes',
-      user: 'Dr. Aya Traoré',
-      service: 'Unité d\'Échographie',
-      time: '16:45',
-      date: 'Hier'
-    },
-    {
-      id: 4,
-      type: 'exit',
-      article: 'Stylos bille bleu',
-      quantity: 20,
-      unit: 'unités',
-      user: 'Paul Diabaté',
-      service: 'Direction Générale',
-      time: '14:20',
-      date: 'Hier'
-    },
-    {
-      id: 5,
-      type: 'exit',
-      article: 'Désinfectant surfaces',
-      quantity: 5,
-      unit: 'litres',
-      user: 'Fatou Bamba',
-      service: 'Service Documentation',
-      time: '11:30',
-      date: 'Hier'
+  // Récupérer les mouvements récents depuis Firestore
+  const { data: allMovements } = useFirestore<Movement>('movements');
+  
+  // Limiter aux 5 mouvements les plus récents
+  const movements = allMovements
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Aujourd\'hui';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Hier';
+    } else {
+      return date.toLocaleDateString('fr-FR');
     }
-  ];
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm">
@@ -77,7 +44,7 @@ const RecentMovements: React.FC = () => {
       </div>
       
       <div className="divide-y divide-gray-100">
-        {movements.map((movement) => (
+        {movements.length > 0 ? movements.map((movement) => (
           <div key={movement.id} className="p-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-4">
               {/* Movement Type Icon */}
@@ -96,7 +63,7 @@ const RecentMovements: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {movement.article}
+                    {movement.articleName}
                   </p>
                   <span className={`
                     px-2 py-1 text-xs font-medium rounded-full
@@ -115,7 +82,7 @@ const RecentMovements: React.FC = () => {
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <User className="w-3 h-3 mr-1" />
-                    {movement.user}
+                    {movement.userName}
                   </div>
                 </div>
                 
@@ -125,13 +92,18 @@ const RecentMovements: React.FC = () => {
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="w-3 h-3 mr-1" />
-                    {movement.time} - {movement.date}
+                    {movement.time} - {formatDate(movement.createdAt)}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="p-8 text-center text-gray-500">
+            <ArrowUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>Aucun mouvement récent</p>
+          </div>
+        )}
       </div>
     </div>
   );

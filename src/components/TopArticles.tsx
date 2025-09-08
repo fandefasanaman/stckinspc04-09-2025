@@ -1,49 +1,50 @@
 import React from 'react';
 import { TrendingUp, Package } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
+import { Movement, Article } from '../types';
 
 const TopArticles: React.FC = () => {
-  const topArticles = [
-    {
-      id: 1,
-      name: 'Papier A4 80g',
-      category: 'Fournitures Bureau',
-      totalExits: 245,
-      currentStock: 150,
-      trend: '+12%'
-    },
-    {
-      id: 2,
-      name: 'Gants latex M',
-      category: 'Consommables Médicaux',
-      totalExits: 189,
-      currentStock: 75,
-      trend: '+8%'
-    },
-    {
-      id: 3,
-      name: 'Stylos bille bleu',
-      category: 'Fournitures Bureau',
-      totalExits: 156,
-      currentStock: 200,
-      trend: '+15%'
-    },
-    {
-      id: 4,
-      name: 'Cartouches HP 305',
-      category: 'Consommables IT',
-      totalExits: 134,
-      currentStock: 25,
-      trend: '+5%'
-    },
-    {
-      id: 5,
-      name: 'Désinfectant surfaces',
-      category: 'Produits Entretien',
-      totalExits: 98,
-      currentStock: 40,
-      trend: '+22%'
-    }
-  ];
+  // Récupérer les mouvements et articles depuis Firestore
+  const { data: movements } = useFirestore<Movement>('movements');
+  const { data: articles } = useFirestore<Article>('articles');
+
+  // Calculer les articles les plus sortis
+  const calculateTopArticles = () => {
+    const exitMovements = movements.filter(m => m.type === 'exit' && m.status === 'validated');
+    const articleExits: { [key: string]: number } = {};
+
+    // Compter les sorties par article
+    exitMovements.forEach(movement => {
+      if (articleExits[movement.articleId]) {
+        articleExits[movement.articleId] += movement.quantity;
+      } else {
+        articleExits[movement.articleId] = movement.quantity;
+      }
+    });
+
+    // Créer la liste des top articles avec leurs informations
+    const topArticles = Object.entries(articleExits)
+      .map(([articleId, totalExits]) => {
+        const article = articles.find(a => a.id === articleId);
+        if (!article) return null;
+        
+        return {
+          id: articleId,
+          name: article.name,
+          category: article.category,
+          totalExits,
+          currentStock: article.currentStock,
+          trend: '+0%' // Vous pourriez calculer la tendance en comparant avec la période précédente
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (b?.totalExits || 0) - (a?.totalExits || 0))
+      .slice(0, 5);
+
+    return topArticles;
+  };
+
+  const topArticles = calculateTopArticles();
 
   return (
     <div className="bg-white rounded-lg shadow-sm">
@@ -61,7 +62,7 @@ const TopArticles: React.FC = () => {
       
       <div className="p-6">
         <div className="space-y-4">
-          {topArticles.map((article, index) => (
+          {topArticles.length > 0 ? topArticles.map((article, index) => (
             <div key={article.id} className="flex items-center space-x-4">
               {/* Rank */}
               <div 
@@ -75,30 +76,35 @@ const TopArticles: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {article.name}
+                    {article?.name}
                   </p>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium" style={{ color: '#6B2C91' }}>
                       {article.totalExits}
-                    </span>
+                    <p className="text-sm font-bold" style={{ color: '#6B2C91' }}>{article?.totalExits} sorties</p>
                     <span className="text-xs text-green-600 font-medium">
-                      {article.trend}
+                      {article?.trend}
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between mt-1">
                   <p className="text-xs" style={{ color: '#00A86B' }}>
-                    {article.category}
+                    {article?.category}
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Package className="w-3 h-3 mr-1" />
-                    Stock: {article.currentStock}
+                    Stock: {article?.currentStock}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-center text-gray-500 py-8">
+              <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>Aucune donnée disponible</p>
+            </div>
+          )}
         </div>
         
         <div className="mt-6 pt-4 border-t border-gray-200">
@@ -110,6 +116,9 @@ const TopArticles: React.FC = () => {
           </button>
         </div>
       </div>
+    )
+    )
+    }
     </div>
   );
 };
