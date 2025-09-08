@@ -380,13 +380,13 @@ const Settings: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Paramètres Système
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Configuration et personnalisation de l'application
           </p>
         </div>
         <button 
           className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: '#2D8A47' }}
+          style={{ backgroundColor: '#00A86B' }}
         >
           <Save className="w-4 h-4 mr-2" />
           Sauvegarder

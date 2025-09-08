@@ -88,10 +88,10 @@ const Users: React.FC = () => {
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      admin: { label: 'Administrateur', color: '#2D8A47', bgColor: '#2D8A4720' },
+      admin: { label: 'Administrateur', color: '#DC143C', bgColor: '#DC143C20' },
       manager: { label: 'Gestionnaire', color: '#6B2C91', bgColor: '#6B2C9120' },
       supervisor: { label: 'Responsable', color: '#D4AF37', bgColor: '#D4AF3720' },
-      user: { label: 'Utilisateur', color: '#2D8A47', bgColor: '#2D8A4720' }
+      user: { label: 'Utilisateur', color: '#00A86B', bgColor: '#00A86B20' }
     };
 
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.user;
@@ -109,11 +109,11 @@ const Users: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     return status === 'active' ? (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#2D8A4720', color: '#2D8A47' }}>
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
         Actif
       </span>
     ) : (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#2D8A4720', color: '#2D8A47' }}>
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
         Inactif
       </span>
     );
@@ -147,7 +147,7 @@ const Users: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Utilisateurs
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Gérez les comptes utilisateurs et leurs permissions
           </p>
         </div>

@@ -1,13 +1,24 @@
 import React from 'react';
 import { Menu, Bell, Search, User, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
+  const { userData, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
+
   return (
-    <header className="bg-white shadow-sm border-b" style={{ borderColor: '#E5E0DB' }}>
+    <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left side */}
         <div className="flex items-center space-x-4">
@@ -23,8 +34,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <input
               type="text"
               placeholder="Rechercher..."
-              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent w-80"
-              style={{ borderColor: '#E5E0DB', '--tw-ring-color': '#6B2C91' } as any}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent w-80"
+              style={{ focusRingColor: '#6B2C91' }}
             />
           </div>
         </div>
@@ -36,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <Bell className="w-5 h-5" style={{ color: '#6B2C91' }} />
             <span 
               className="absolute -top-1 -right-1 w-4 h-4 text-xs text-white rounded-full flex items-center justify-center"
-              style={{ backgroundColor: '#2D8A47' }}
+              style={{ backgroundColor: '#DC143C' }}
             >
               3
             </span>
@@ -45,21 +56,31 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           {/* User menu */}
           <div className="flex items-center space-x-3">
             <div className="hidden md:block text-right">
-              <p className="text-sm font-medium" style={{ color: '#6B2C91' }}>Admin INSPC Befelatanana</p>
-              <p className="text-xs" style={{ color: '#5A4A42' }}>Administrateur</p>
+              <p className="text-sm font-medium" style={{ color: '#6B2C91' }}>
+                {userData?.name || 'Utilisateur'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {userData?.role === 'admin' ? 'Administrateur' :
+                 userData?.role === 'manager' ? 'Gestionnaire' :
+                 userData?.role === 'supervisor' ? 'Responsable' : 'Utilisateur'}
+              </p>
             </div>
             <div className="relative">
               <button className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100">
                 <div 
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                  style={{ backgroundColor: '#2D8A47' }}
+                  style={{ backgroundColor: '#00A86B' }}
                 >
-                  <User className="w-4 h-4" />
+                  {userData?.name ? userData.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
                 </div>
               </button>
             </div>
-            <button className="p-2 rounded-lg hover:bg-gray-100">
-              <LogOut className="w-5 h-5" style={{ color: '#2D8A47' }} />
+            <button 
+              onClick={handleSignOut}
+              className="p-2 rounded-lg hover:bg-gray-100"
+              title="Se déconnecter"
+            >
+              <LogOut className="w-5 h-5" style={{ color: '#DC143C' }} />
             </button>
           </div>
         </div>

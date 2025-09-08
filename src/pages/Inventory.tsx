@@ -173,7 +173,7 @@ const Inventory: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Inventaires
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Planifiez et suivez vos inventaires physiques
           </p>
         </div>
@@ -227,12 +227,12 @@ const Inventory: React.FC = () => {
           <div className="flex items-center">
             <div 
               className="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
-              style={{ backgroundColor: '#2D8A4720' }}
+              style={{ backgroundColor: '#00A86B20' }}
             >
-              <CheckCircle className="w-6 h-6" style={{ color: '#2D8A47' }} />
+              <CheckCircle className="w-6 h-6" style={{ color: '#00A86B' }} />
             </div>
             <div>
-              <p className="text-2xl font-bold" style={{ color: '#2D8A47' }}>
+              <p className="text-2xl font-bold" style={{ color: '#00A86B' }}>
                 {inventories.filter(i => i.status === 'validated').length}
               </p>
               <p className="text-sm text-gray-600">Validés</p>
@@ -244,12 +244,12 @@ const Inventory: React.FC = () => {
           <div className="flex items-center">
             <div 
               className="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
-              style={{ backgroundColor: '#2D8A4720' }}
+              style={{ backgroundColor: '#DC143C20' }}
             >
-              <AlertTriangle className="w-6 h-6" style={{ color: '#2D8A47' }} />
+              <AlertTriangle className="w-6 h-6" style={{ color: '#DC143C' }} />
             </div>
             <div>
-              <p className="text-2xl font-bold" style={{ color: '#2D8A47' }}>
+              <p className="text-2xl font-bold" style={{ color: '#DC143C' }}>
                 {inventories.reduce((sum, i) => sum + i.discrepancies, 0)}
               </p>
               <p className="text-sm text-gray-600">Écarts totaux</p>

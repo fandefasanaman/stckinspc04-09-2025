@@ -68,8 +68,8 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <ArrowDown className="w-6 h-6 mr-3" style={{ color: '#2D8A47' }} />
-            <h2 className="text-xl font-semibold" style={{ color: '#2D8A47' }}>
+            <ArrowDown className="w-6 h-6 mr-3" style={{ color: '#DC143C' }} />
+            <h2 className="text-xl font-semibold" style={{ color: '#DC143C' }}>
               Sortie de Stock
             </h2>
           </div>
@@ -92,7 +92,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.articleCode}
                 onChange={(e) => setFormData({ ...formData, articleCode: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
               >
                 <option value="">Sélectionner un article</option>
                 {articles.map(article => (
@@ -116,7 +116,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#2D8A47' } as any}
+                  style={{ '--tw-ring-color': '#DC143C' } as any}
                   placeholder="Ex: 10"
                 />
                 {selectedArticle && (
@@ -136,7 +136,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.service}
                 onChange={(e) => setFormData({ ...formData, service: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
               >
                 <option value="">Sélectionner un service</option>
                 {services.map(service => (
@@ -157,7 +157,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.beneficiary}
                 onChange={(e) => setFormData({ ...formData, beneficiary: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
                 placeholder="Ex: Secrétariat SPS"
               />
             </div>
@@ -171,7 +171,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.reference}
                 onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
                 placeholder="Ex: BS-2024-001"
               />
             </div>
@@ -186,7 +186,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
                 placeholder="Ex: Consommables pour consultation"
               />
             </div>
@@ -200,7 +200,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#DC143C' } as any}
                 placeholder="Notes optionnelles..."
               />
             </div>
@@ -217,7 +217,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
             <button
               type="submit"
               className="flex items-center px-6 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#2D8A47' }}
+              style={{ backgroundColor: '#DC143C' }}
             >
               <Save className="w-4 h-4 mr-2" />
               Enregistrer Sortie

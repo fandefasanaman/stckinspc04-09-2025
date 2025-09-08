@@ -101,21 +101,21 @@ const Articles: React.FC = () => {
   const getStatusBadge = (status: string, currentStock: number, minStock: number) => {
     if (status === 'out' || currentStock === 0) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#2D8A4720', color: '#2D8A47' }}>
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <AlertTriangle className="w-3 h-3 mr-1" />
           Rupture
         </span>
       );
     } else if (status === 'low' || currentStock <= minStock) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#D4AF3720', color: '#D4AF37' }}>
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
           <AlertTriangle className="w-3 h-3 mr-1" />
           Stock faible
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#2D8A4720', color: '#2D8A47' }}>
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
           Normal
         </span>
@@ -144,7 +144,7 @@ const Articles: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Articles
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Gérez votre catalogue d'articles et suivez les stocks
           </p>
         </div>

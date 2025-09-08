@@ -60,8 +60,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <ArrowUp className="w-6 h-6 mr-3" style={{ color: '#2D8A47' }} />
-            <h2 className="text-xl font-semibold" style={{ color: '#2D8A47' }}>
+            <ArrowUp className="w-6 h-6 mr-3" style={{ color: '#00A86B' }} />
+            <h2 className="text-xl font-semibold" style={{ color: '#00A86B' }}>
               Entrée de Stock
             </h2>
           </div>
@@ -84,7 +84,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 value={formData.articleCode}
                 onChange={(e) => setFormData({ ...formData, articleCode: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#00A86B' } as any}
               >
                 <option value="">Sélectionner un article</option>
                 {articles.map(article => (
@@ -107,7 +107,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#2D8A47' } as any}
+                  style={{ '--tw-ring-color': '#00A86B' } as any}
                   placeholder="Ex: 50"
                 />
                 {selectedArticle && (
@@ -127,7 +127,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 value={formData.supplier}
                 onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#00A86B' } as any}
               >
                 <option value="">Sélectionner un fournisseur</option>
                 {suppliers.map(supplier => (
@@ -147,7 +147,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 value={formData.reference}
                 onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#00A86B' } as any}
                 placeholder="Ex: BE-2024-001"
               />
             </div>
@@ -161,7 +161,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#2D8A47' } as any}
+                style={{ '--tw-ring-color': '#00A86B' } as any}
                 placeholder="Notes additionnelles..."
               />
             </div>
@@ -178,7 +178,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
             <button
               type="submit"
               className="flex items-center px-6 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#2D8A47' }}
+              style={{ backgroundColor: '#00A86B' }}
             >
               <Save className="w-4 h-4 mr-2" />
               Enregistrer Entrée

@@ -13,8 +13,6 @@ import StatsCard from '../components/StatsCard';
 import StockAlerts from '../components/StockAlerts';
 import TopArticles from '../components/TopArticles';
 import RecentMovements from '../components/RecentMovements';
-import DonutChart from '../components/DonutChart';
-import MadagascarPattern from '../components/MadagascarPattern';
 
 const Dashboard: React.FC = () => {
   const dashboardStats = [
@@ -32,7 +30,7 @@ const Dashboard: React.FC = () => {
       change: '+8%',
       changeType: 'increase' as const,
       icon: ArrowUpDown,
-      color: '#2D8A47'
+      color: '#00A86B'
     },
     {
       title: 'Alertes Stock',
@@ -40,7 +38,7 @@ const Dashboard: React.FC = () => {
       change: '-5%',
       changeType: 'decrease' as const,
       icon: AlertTriangle,
-      color: '#2D8A47'
+      color: '#DC143C'
     },
     {
       title: 'Utilisateurs Actifs',
@@ -57,14 +55,14 @@ const Dashboard: React.FC = () => {
       title: 'Nouvelle Entrée',
       description: 'Enregistrer une entrée de stock',
       icon: ArrowUp,
-      color: '#2D8A47',
+      color: '#00A86B',
       action: () => console.log('Nouvelle entrée')
     },
     {
       title: 'Nouvelle Sortie',
       description: 'Enregistrer une sortie de stock',
       icon: ArrowDown,
-      color: '#2D8A47',
+      color: '#DC143C',
       action: () => console.log('Nouvelle sortie')
     },
     {
@@ -94,7 +92,7 @@ const Dashboard: React.FC = () => {
       service: 'Direction Formation et Recherche',
       movements: 32,
       trend: '+8%',
-      color: '#2D8A47'
+      color: '#00A86B'
     },
     {
       service: 'Service Administratif',
@@ -106,56 +104,23 @@ const Dashboard: React.FC = () => {
       service: 'Unité d\'Échographie',
       movements: 19,
       trend: '+22%',
-      color: '#2D8A47'
-    }
-  ];
-
-  // Données pour le graphique circulaire - Répartition par catégorie
-  const categoryData = [
-    {
-      name: 'Fournitures Bureau',
-      value: 42,
-      color: '#6B2C91',
-      description: 'Papeterie, stylos, classeurs'
-    },
-    {
-      name: 'Consommables Médicaux',
-      value: 28,
-      color: '#2D8A47',
-      description: 'Gants, seringues, désinfectants'
-    },
-    {
-      name: 'Consommables IT',
-      value: 22,
-      color: '#D4AF37',
-      description: 'Cartouches, câbles, accessoires'
-    },
-    {
-      name: 'Produits Entretien',
-      value: 8,
-      color: '#DC143C',
-      description: 'Nettoyants, produits d\'hygiène'
+      color: '#DC143C'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Madagascar Pattern Easter Egg */}
-      <div className="relative">
-        <MadagascarPattern />
-      </div>
-      
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Tableau de Bord
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Vue d'ensemble de la gestion de stock - INSPC Befelatanana
           </p>
         </div>
-        <div className="text-sm" style={{ color: '#5A4A42' }}>
+        <div className="text-sm text-gray-500">
           Dernière mise à jour: {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -181,7 +146,7 @@ const Dashboard: React.FC = () => {
           <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
             Actions Rapides
           </h3>
-          <p className="text-sm mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-sm text-gray-600 mt-1">
             Accès rapide aux fonctionnalités principales
           </p>
         </div>
@@ -193,8 +158,7 @@ const Dashboard: React.FC = () => {
                 <button
                   key={index}
                   onClick={action.action}
-                  className="p-4 border rounded-lg hover:shadow-md transition-shadow text-left"
-                  style={{ borderColor: '#E5E0DB' }}
+                  className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow text-left"
                 >
                   <div className="flex items-center mb-3">
                     <div 
@@ -203,9 +167,9 @@ const Dashboard: React.FC = () => {
                     >
                       <Icon className="w-5 h-5" style={{ color: action.color }} />
                     </div>
-                    <h4 className="font-medium" style={{ color: '#2C1810' }}>{action.title}</h4>
+                    <h4 className="font-medium text-gray-900">{action.title}</h4>
                   </div>
-                  <p className="text-sm" style={{ color: '#5A4A42' }}>{action.description}</p>
+                  <p className="text-sm text-gray-600">{action.description}</p>
                 </button>
               );
             })}
@@ -214,31 +178,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stock Alerts - Takes 1 column */}
-        <div className="xl:col-span-1">
+        <div className="lg:col-span-1">
           <StockAlerts />
         </div>
 
         {/* Recent Movements - Takes 1 column */}
-        <div className="xl:col-span-1">
+        <div className="lg:col-span-1">
           <RecentMovements />
         </div>
 
         {/* Top Articles - Takes 1 column */}
-        <div className="xl:col-span-1">
+        <div className="lg:col-span-1">
           <TopArticles />
-        </div>
-
-        {/* Donut Chart - Takes 1 column */}
-        <div className="xl:col-span-1">
-          <DonutChart
-            title="Répartition par Catégorie"
-            subtitle="Distribution des sorties par type d'articles"
-            data={categoryData}
-            centerText="Articles"
-            centerValue="247"
-          />
         </div>
       </div>
 
@@ -249,7 +202,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
               Activité par Service
             </h3>
-            <div className="text-sm" style={{ color: '#2D8A47' }}>
+            <div className="text-sm" style={{ color: '#00A86B' }}>
               Ce mois
             </div>
           </div>
@@ -266,10 +219,10 @@ const Dashboard: React.FC = () => {
                     <Building className="w-5 h-5" style={{ color: service.color }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium" style={{ color: '#2C1810' }}>
+                    <p className="text-sm font-medium text-gray-900">
                       {service.service}
                     </p>
-                    <p className="text-xs" style={{ color: '#5A4A42' }}>
+                    <p className="text-xs text-gray-500">
                       {service.movements} mouvements
                     </p>
                   </div>
@@ -278,7 +231,7 @@ const Dashboard: React.FC = () => {
                   <p className="text-lg font-bold" style={{ color: service.color }}>
                     {service.movements}
                   </p>
-                  <p className="text-xs font-medium" style={{ color: '#2D8A47' }}>
+                  <p className="text-xs text-green-600 font-medium">
                     {service.trend}
                   </p>
                 </div>
@@ -300,23 +253,23 @@ const Dashboard: React.FC = () => {
             <div className="text-center">
               <div 
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
-                style={{ backgroundColor: '#2D8A4720' }}
+                style={{ backgroundColor: '#00A86B20' }}
               >
-                <CheckCircle className="w-8 h-8" style={{ color: '#2D8A47' }} />
+                <CheckCircle className="w-8 h-8" style={{ color: '#00A86B' }} />
               </div>
-              <h4 className="font-medium" style={{ color: '#2C1810' }}>Base de Données</h4>
-              <p className="text-sm" style={{ color: '#2D8A47' }}>Opérationnelle</p>
+              <h4 className="font-medium text-gray-900">Base de Données</h4>
+              <p className="text-sm text-green-600">Opérationnelle</p>
             </div>
             
             <div className="text-center">
               <div 
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
-                style={{ backgroundColor: '#2D8A4720' }}
+                style={{ backgroundColor: '#00A86B20' }}
               >
-                <Package className="w-8 h-8" style={{ color: '#2D8A47' }} />
+                <Package className="w-8 h-8" style={{ color: '#00A86B' }} />
               </div>
-              <h4 className="font-medium" style={{ color: '#2C1810' }}>Synchronisation</h4>
-              <p className="text-sm" style={{ color: '#2D8A47' }}>À jour</p>
+              <h4 className="font-medium text-gray-900">Synchronisation</h4>
+              <p className="text-sm text-green-600">À jour</p>
             </div>
             
             <div className="text-center">
@@ -326,7 +279,7 @@ const Dashboard: React.FC = () => {
               >
                 <Users className="w-8 h-8" style={{ color: '#D4AF37' }} />
               </div>
-              <h4 className="font-medium" style={{ color: '#2C1810' }}>Utilisateurs Connectés</h4>
+              <h4 className="font-medium text-gray-900">Utilisateurs Connectés</h4>
               <p className="text-sm" style={{ color: '#D4AF37' }}>8 actifs</p>
             </div>
           </div>

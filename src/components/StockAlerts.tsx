@@ -1,114 +1,155 @@
 import React from 'react';
-import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
-
-interface Alert {
-  id: string;
-  type: 'critical' | 'warning' | 'info';
-  title: string;
-  message: string;
-  article?: string;
-  quantity?: number;
-}
+import { AlertTriangle, Package, Calendar } from 'lucide-react';
 
 const StockAlerts: React.FC = () => {
-  const alerts: Alert[] = [
+  const alerts = [
     {
-      id: '1',
-      type: 'critical',
-      title: 'Niveau de stock critique',
-      message: 'Stock en dessous du seuil minimum',
-      article: 'Cartouches HP 305',
-      quantity: 2
-    },
-    {
-      id: '2',
-      type: 'warning',
-      title: 'Alerte de stock faible',
-      message: 'Stock faible',
-      article: 'Gants latex M',
-      quantity: 8
-    },
-    {
-      id: '3',
-      type: 'info',
-      title: 'Rappel de réapprovisionnement',
-      message: 'Pensez à réapprovisionner bientôt',
+      id: 1,
+      type: 'low_stock',
       article: 'Papier A4 80g',
-      quantity: 15
+      currentStock: 5,
+      minStock: 20,
+      category: 'Fournitures Bureau',
+      priority: 'high'
+    },
+    {
+      id: 2,
+      type: 'expiring',
+      article: 'Antiseptique',
+      expiryDate: '2024-02-15',
+      quantity: 12,
+      category: 'Consommables Médicaux',
+      priority: 'medium'
+    },
+    {
+      id: 3,
+      type: 'out_of_stock',
+      article: 'Cartouches HP 305',
+      currentStock: 0,
+      minStock: 5,
+      category: 'Consommables IT',
+      priority: 'critical'
+    },
+    {
+      id: 4,
+      type: 'low_stock',
+      article: 'Gants latex M',
+      currentStock: 8,
+      minStock: 25,
+      category: 'Consommables Médicaux',
+      priority: 'high'
+    },
+    {
+      id: 5,
+      type: 'expiring',
+      article: 'Produit nettoyant',
+      expiryDate: '2024-01-30',
+      quantity: 3,
+      category: 'Produits Entretien',
+      priority: 'low'
     }
   ];
 
-  const getAlertIcon = (type: Alert['type']) => {
-    switch (type) {
-      case 'critical':
-        return <AlertTriangle className="w-5 h-5" />;
-      case 'warning':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'info':
-        return <Info className="w-5 h-5" />;
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return '#DC143C';
+      case 'high': return '#FF6B35';
+      case 'medium': return '#D4AF37';
+      case 'low': return '#00A86B';
+      default: return '#6B2C91';
     }
   };
 
-  const getAlertStyles = (type: Alert['type']) => {
+  const getAlertIcon = (type: string) => {
     switch (type) {
-      case 'critical':
-        return 'bg-red-50 border-red-200 text-red-800';
-      case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      case 'info':
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+      case 'out_of_stock':
+      case 'low_stock':
+        return Package;
+      case 'expiring':
+        return Calendar;
+      default:
+        return AlertTriangle;
     }
   };
 
-  const getIconStyles = (type: Alert['type']) => {
-    switch (type) {
-      case 'critical':
-        return 'text-red-500';
-      case 'warning':
-        return 'text-yellow-500';
-      case 'info':
-        return 'text-blue-500';
+  const getAlertMessage = (alert: any) => {
+    switch (alert.type) {
+      case 'out_of_stock':
+        return 'Rupture de stock';
+      case 'low_stock':
+        return `Stock faible: ${alert.currentStock}/${alert.minStock}`;
+      case 'expiring':
+        return `Expire le ${alert.expiryDate}`;
+      default:
+        return 'Alerte';
     }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm">
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
-          Alertes de Stock
-        </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Alertes importantes nécessitant votre attention
-        </p>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
+            Alertes Stock
+          </h3>
+          <span 
+            className="px-2 py-1 text-xs font-medium text-white rounded-full"
+            style={{ backgroundColor: '#DC143C' }}
+          >
+            {alerts.length}
+          </span>
+        </div>
       </div>
       
-      <div className="space-y-3">
-        {alerts.map((alert) => (
-          <div 
-            key={alert.id} 
-            className={`p-4 rounded-lg border ${getAlertStyles(alert.type)}`}
-          >
-            <div className="flex items-start space-x-3">
-              <div className={getIconStyles(alert.type)}>
-                {getAlertIcon(alert.type)}
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium">{alert.title}</h4>
-                <p className="text-sm mt-1">{alert.message}</p>
-                {alert.article && (
-                  <div className="mt-2 text-sm">
-                    <span className="font-medium">Article :</span> {alert.article}
-                    {alert.quantity && (
-                      <span className="ml-2">
-                        <span className="font-medium">Quantité :</span> {alert.quantity}
-                      </span>
-                    )}
+      <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+        {alerts.map((alert) => {
+          const Icon = getAlertIcon(alert.type);
+          const priorityColor = getPriorityColor(alert.priority);
+          
+          return (
+            <div key={alert.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-start space-x-3">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${priorityColor}20` }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: priorityColor }} />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {alert.article}
+                    </p>
+                    <span 
+                      className="px-2 py-1 text-xs font-medium text-white rounded-full"
+                      style={{ backgroundColor: priorityColor }}
+                    >
+                      {alert.priority.toUpperCase()}
+                    </span>
                   </div>
-                )}
+                  
+                  <p className="text-sm text-gray-600 mt-1">
+                    {getAlertMessage(alert)}
+                  </p>
+                  
+                  <p className="text-xs mt-1" style={{ color: '#00A86B' }}>
+                    {alert.category}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+      </div>
+      
+      <div className="p-4 border-t border-gray-200">
+        <button 
+          className="w-full py-2 px-4 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: '#6B2C91' }}
+        >
+          Voir toutes les alertes
+        </button>
       </div>
     </div>
   );

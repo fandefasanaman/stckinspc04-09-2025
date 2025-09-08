@@ -56,10 +56,6 @@ const TopArticles: React.FC = () => {
             <TrendingUp className="w-4 h-4 mr-1" />
             Ce mois
           </div>
-          <div className="flex items-center text-sm" style={{ color: '#2D8A47' }}>
-            <TrendingUp className="w-4 h-4 mr-1" />
-            Ce mois
-          </div>
         </div>
       </div>
       
@@ -78,26 +74,26 @@ const TopArticles: React.FC = () => {
               {/* Article Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium truncate" style={{ color: '#2C1810' }}>
+                  <p className="text-sm font-medium text-gray-900 truncate">
                     {article.name}
                   </p>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium" style={{ color: '#6B2C91' }}>
                       {article.totalExits}
                     </span>
-                    <span className="text-xs font-medium" style={{ color: '#2D8A47' }}>
+                    <span className="text-xs text-green-600 font-medium">
                       {article.trend}
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs" style={{ color: '#2D8A47' }}>
+                  <p className="text-xs" style={{ color: '#00A86B' }}>
                     {article.category}
                   </p>
-                  <div className="flex items-center text-xs" style={{ color: '#5A4A42' }}>
+                  <div className="flex items-center text-xs text-gray-500">
                     <Package className="w-3 h-3 mr-1" />
-                    Stock : {article.currentStock}
+                    Stock: {article.currentStock}
                   </div>
                 </div>
               </div>

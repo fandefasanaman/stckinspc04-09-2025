@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginForm from './components/LoginForm';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
@@ -10,31 +13,84 @@ import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 
-function App() {
+const AppContent: React.FC = () => {
+  const { currentUser, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  return (
-    <Router>
-      <div className="flex h-screen" style={{ backgroundColor: '#F8F7F5' }}>
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
-          
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-6" style={{ backgroundColor: '#F8F7F5' }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/articles" element={<Articles />} />
-              <Route path="/movements" element={<Movements />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </main>
-        </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
       </div>
-    </Router>
+    );
+  }
+
+  if (!currentUser) {
+    return <LoginForm />;
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+          <Routes>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/articles" element={
+              <ProtectedRoute>
+                <Articles />
+              </ProtectedRoute>
+            } />
+            <Route path="/movements" element={
+              <ProtectedRoute>
+                <Movements />
+              </ProtectedRoute>
+            } />
+            <Route path="/inventory" element={
+              <ProtectedRoute requiredRole="supervisor">
+                <Inventory />
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute requiredRole="supervisor">
+                <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute requiredRole="admin">
+                <Users />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute requiredRole="admin">
+                <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

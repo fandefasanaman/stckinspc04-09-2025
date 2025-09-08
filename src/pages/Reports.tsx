@@ -158,7 +158,7 @@ const Reports: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Rapports et Analyses
           </h1>
-          <p className="mt-1" style={{ color: '#5A4A42' }}>
+          <p className="text-gray-600 mt-1">
             Analyses détaillées et tableaux de bord décisionnels
           </p>
         </div>
@@ -174,7 +174,7 @@ const Reports: React.FC = () => {
           <button 
             onClick={handleExport}
             className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#2D8A47' }}
+            style={{ backgroundColor: '#00A86B' }}
           >
             <Download className="w-4 h-4 mr-2" />
             Exporter

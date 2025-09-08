@@ -46,19 +46,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b" style={{ backgroundColor: '#D4AF37', borderColor: '#E5E0DB' }}>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200" style={{ backgroundColor: '#D4AF37' }}>
           <div className="flex items-center space-x-3">
             <Building2 className="w-8 h-8" style={{ color: '#6B2C91' }} />
             <div>
-              <h1 className="text-lg font-bold" style={{ color: '#2C1810' }}>INSPC</h1>
-              <p className="text-xs" style={{ color: '#5A4A42' }}>Befelatanana</p>
+              <h1 className="text-lg font-bold" style={{ color: '#6B2C91' }}>INSPC</h1>
+              <p className="text-xs" style={{ color: '#6B2C91' }}>Befelatanana</p>
             </div>
           </div>
           <button 
             onClick={onClose}
             className="lg:hidden p-1 rounded-md hover:bg-gray-100"
           >
-            <X className="w-5 h-5" style={{ color: '#2C1810' }} />
+            <X className="w-5 h-5" style={{ color: '#6B2C91' }} />
           </button>
         </div>
 
@@ -78,10 +78,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200
                       ${isActive 
                         ? 'text-white shadow-md' 
-                        : 'hover:bg-gray-50'
+                        : 'text-gray-600 hover:bg-gray-50'
                       }
                     `}
-                    style={isActive ? { backgroundColor: '#6B2C91' } : { color: '#5A4A42' }}
+                    style={isActive ? { backgroundColor: '#6B2C91' } : {}}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
@@ -93,10 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t" style={{ borderColor: '#E5E0DB' }}>
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="text-center">
-            <p className="text-xs" style={{ color: '#5A4A42' }}>Version 1.0.0</p>
-            <p className="text-xs" style={{ color: '#5A4A42' }}>© 2024 INSPC Antananarivo</p>
+            <p className="text-xs text-gray-500">Version 1.0.0</p>
+            <p className="text-xs text-gray-500">© 2024 INSPC Antananarivo</p>
           </div>
         </div>
       </div>
