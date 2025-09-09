@@ -92,7 +92,14 @@ export class MovementService {
   static async createStockEntry(entryData: {
     articleId: string;
     quantity: number;
-    supplier?: string;
+    supplierId?: string;
+    deliveryNote?: string;
+    receivedDate?: string;
+    batchNumber?: string;
+    expiryDate?: string;
+    qualityCheck?: 'pending' | 'passed' | 'failed';
+    qualityNotes?: string;
+    location?: string;
     reference?: string;
     notes?: string;
     userId: string;
@@ -131,10 +138,17 @@ export class MovementService {
           userId: entryData.userId,
           userName: entryData.userName,
           service: entryData.service,
-          supplier: entryData.supplier,
+          supplierId: entryData.supplierId,
+          deliveryNote: entryData.deliveryNote,
+          receivedDate: entryData.receivedDate,
+          batchNumber: entryData.batchNumber,
+          expiryDate: entryData.expiryDate,
+          qualityCheck: entryData.qualityCheck || 'pending',
+          qualityNotes: entryData.qualityNotes,
+          location: entryData.location,
           reference: entryData.reference,
           notes: entryData.notes,
-          status: 'validated',
+          status: entryData.qualityCheck === 'failed' ? 'pending' : 'validated',
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
           createdAt: new Date().toISOString(),
@@ -149,6 +163,9 @@ export class MovementService {
         transaction.update(articleRef, {
           currentStock: newStock,
           status,
+          batchNumber: entryData.batchNumber,
+          expiryDate: entryData.expiryDate,
+          location: entryData.location,
           lastEntry: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });

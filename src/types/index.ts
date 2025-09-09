@@ -21,9 +21,13 @@ export interface Article {
   maxStock: number;
   unitPrice?: number;
   supplier?: string;
+  supplierId?: string;
   description?: string;
   status: 'normal' | 'low' | 'out';
   lastEntry?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  location?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +45,14 @@ export interface Movement {
   service: string;
   reference?: string;
   supplier?: string;
+  supplierId?: string;
+  deliveryNote?: string;
+  receivedDate?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  qualityCheck?: 'pending' | 'passed' | 'failed';
+  qualityNotes?: string;
+  location?: string;
   beneficiary?: string;
   reason?: string;
   notes?: string;
@@ -97,4 +109,33 @@ export interface StockAlert {
   status: 'active' | 'resolved';
   createdAt: string;
   resolvedAt?: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  code: string;
+  contact: {
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
+  categories: string[];
+  status: 'active' | 'inactive';
+  rating?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastOrder?: string;
+}
+
+export interface StockLocation {
+  id: string;
+  name: string;
+  code: string;
+  type: 'warehouse' | 'shelf' | 'room' | 'cabinet';
+  description?: string;
+  capacity?: number;
+  status: 'active' | 'inactive';
+  createdAt: string;
 }
