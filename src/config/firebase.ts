@@ -17,10 +17,21 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// 🔍 DIAGNOSTIC Firebase Config
+console.log('🔍 DIAGNOSTIC Firebase Config:');
+console.log('- Project ID:', firebaseConfig.projectId);
+console.log('- Auth Domain:', firebaseConfig.authDomain);
+console.log('- App initialized:', app.name);
+
 // Initialize Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Test de connexion Firebase au démarrage
+auth.onAuthStateChanged((user) => {
+  console.log('🔍 Auth State Changed:', user ? `Connecté: ${user.uid}` : 'Déconnecté');
+});
 
 // Enable offline persistence
 enableIndexedDbPersistence(db).catch((err) => {
@@ -33,6 +44,8 @@ enableIndexedDbPersistence(db).catch((err) => {
   } else {
     console.error('Firebase persistence error:', err);
   }
+}).then(() => {
+  console.log('✅ Firebase persistence activée');
 });
 
 export default app;

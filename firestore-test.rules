@@ -1,0 +1,33 @@
+// 🧪 RÈGLES FIRESTORE ULTRA-PERMISSIVES POUR TEST
+// ⚠️ ATTENTION: À utiliser UNIQUEMENT pour diagnostic, puis revenir aux règles sécurisées
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 🧪 RÈGLES DE TEST - ULTRA PERMISSIVES
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Collections de test spécifiques
+    match /diagnostic_test/{document} {
+      allow read, write: if true;
+    }
+    
+    match /public_test/{document} {
+      allow read, write: if true;
+    }
+    
+    match /test/{document} {
+      allow read, write: if true;
+    }
+  }
+}
+
+// 📝 INSTRUCTIONS:
+// 1. Copiez ces règles dans la console Firebase (temporairement)
+// 2. Testez la sauvegarde des articles
+// 3. Si ça marche = problème de règles
+// 4. Si ça ne marche pas = problème d'auth ou de réseau
+// 5. IMPORTANT: Remettez les vraies règles après le test !

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../config/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -54,6 +56,19 @@ const LoginForm: React.FC = () => {
   const handleOfflineAccess = () => {
     console.warn('Accès en mode dégradé activé');
     navigate('/', { replace: true });
+  };
+
+  // Test d'authentification anonyme pour diagnostic
+  const handleAnonymousLogin = async () => {
+    try {
+      console.log('🧪 Test connexion anonyme...');
+      const result = await signInAnonymously(auth);
+      console.log('✅ Connexion anonyme réussie:', result.user.uid);
+      navigate('/', { replace: true });
+    } catch (error: any) {
+      console.error('❌ Connexion anonyme échouée:', error);
+      setError('Erreur de connexion anonyme: ' + error.message);
+    }
   };
 
   return (
@@ -185,6 +200,13 @@ const LoginForm: React.FC = () => {
 
           {/* Mode dégradé info */}
           <div className="text-center">
+            <button
+              type="button"
+              onClick={handleAnonymousLogin}
+              className="text-xs text-blue-600 hover:text-blue-800 underline mr-4"
+            >
+              Test connexion anonyme
+            </button>
             <button
               type="button"
               onClick={handleOfflineAccess}

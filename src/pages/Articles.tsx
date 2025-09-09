@@ -17,6 +17,7 @@ import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { ArticleServiceWithFallback } from '../services/articleServiceWithFallback';
 import NewArticleModal from '../components/modals/NewArticleModal';
 import { Article } from '../types';
+import { FirebaseTestUtils } from '../utils/firebaseTest';
 
 const Articles: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -145,6 +146,20 @@ const Articles: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Articles
           </h1>
+          <div className="flex items-center space-x-2 mt-2">
+            <button
+              onClick={() => FirebaseTestUtils.runFullDiagnostic()}
+              className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
+            >
+              🔧 Diagnostic Complet
+            </button>
+            <button
+              onClick={() => FirebaseTestUtils.logSystemInfo()}
+              className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+            >
+              📊 Info Système
+            </button>
+          </div>
           <p className="text-gray-600 mt-1">
             Gérez votre catalogue d'articles et suivez les stocks
           </p>

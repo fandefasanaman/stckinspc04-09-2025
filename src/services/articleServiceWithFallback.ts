@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Article } from '../types';
+import { auth } from '../config/firebase';
 
 export class ArticleServiceWithFallback {
   private static collectionName = 'articles';
@@ -15,6 +16,15 @@ export class ArticleServiceWithFallback {
 
   // Créer un nouvel article avec fallback
   static async createArticle(articleData: Omit<Article, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    // 🔍 DIAGNOSTIC DÉTAILLÉ
+    console.log('🔍 DIAGNOSTIC ArticleService.createArticle:');
+    console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
+    console.log('- User ID:', auth.currentUser?.uid);
+    console.log('- User email:', auth.currentUser?.email);
+    console.log('- Données article:', articleData);
+    console.log('- DB config:', db.app.options);
+    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
+    
     const now = new Date().toISOString();
     const newArticle = {
       ...articleData,
@@ -25,12 +35,16 @@ export class ArticleServiceWithFallback {
     };
 
     try {
+      console.log('🚀 Tentative d\'écriture Firebase...');
       // Essayer d'abord Firebase
       const docRef = await addDoc(collection(db, this.collectionName), newArticle);
-      console.log('Article créé avec succès dans Firebase:', docRef.id);
+      console.log('✅ Article créé avec succès dans Firebase:', docRef.id);
       return docRef.id;
     } catch (error) {
-      console.warn('Erreur Firebase lors de la création, sauvegarde locale:', error);
+      console.error('❌ Erreur Firebase lors de la création:', error);
+      console.error('- Code erreur:', (error as any).code);
+      console.error('- Message:', (error as any).message);
+      console.error('- Stack:', (error as any).stack);
       
       // Fallback: sauvegarder localement
       const localId = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -40,6 +54,8 @@ export class ArticleServiceWithFallback {
       
       // Programmer une synchronisation ultérieure
       this.scheduleSync('create', articleWithId);
+      
+      console.log('💾 Article sauvegardé localement avec ID:', localId);
       
       return localId;
     }

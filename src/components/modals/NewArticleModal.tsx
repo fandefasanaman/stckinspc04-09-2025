@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { X, Package, Save } from 'lucide-react';
+import { auth, db } from '../../config/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
 interface NewArticleModalProps {
   isOpen: boolean;
@@ -39,6 +42,16 @@ const NewArticleModal: React.FC<NewArticleModalProps> = ({ isOpen, onClose, onSa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 🔍 DIAGNOSTIC SAUVEGARDE
+    console.log('🔍 DIAGNOSTIC SAUVEGARDE:');
+    console.log('User authentifié:', auth.currentUser ? 'OUI' : 'NON');
+    console.log('User ID:', auth.currentUser?.uid);
+    console.log('Données à sauvegarder:', formData);
+    
+    // Test de connexion Firestore
+    testFirestoreConnection();
+    
     onSave(formData);
     setFormData({
       code: '',
@@ -51,6 +64,33 @@ const NewArticleModal: React.FC<NewArticleModalProps> = ({ isOpen, onClose, onSa
       description: ''
     });
     onClose();
+  };
+
+  // Test simple d'écriture Firestore
+  const testFirestoreConnection = async () => {
+    try {
+      console.log('🧪 Test de connexion Firestore...');
+      const testRef = await addDoc(collection(db, 'test'), {
+        message: 'test de connexion',
+        timestamp: new Date(),
+        userAgent: navigator.userAgent
+      });
+      console.log('✅ Test écriture Firestore OK:', testRef.id);
+    } catch (error: any) {
+      console.error('❌ Test écriture échoue:', error.code, error.message);
+      console.error('Détails erreur:', error);
+    }
+  };
+
+  // Test d'authentification anonyme
+  const testAnonymousAuth = async () => {
+    try {
+      console.log('🧪 Test authentification anonyme...');
+      const result = await signInAnonymously(auth);
+      console.log('✅ Authentification anonyme OK:', result.user.uid);
+    } catch (error: any) {
+      console.error('❌ Authentification anonyme échoue:', error.code, error.message);
+    }
   };
 
   if (!isOpen) return null;
@@ -74,6 +114,39 @@ const NewArticleModal: React.FC<NewArticleModalProps> = ({ isOpen, onClose, onSa
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
+          {/* Boutons de diagnostic */}
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 className="text-sm font-medium text-yellow-800 mb-3">🔧 Outils de Diagnostic</h3>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={testFirestoreConnection}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+              >
+                Test Firestore
+              </button>
+              <button
+                type="button"
+                onClick={testAnonymousAuth}
+                className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200"
+              >
+                Test Auth Anonyme
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('📊 État actuel:');
+                  console.log('- Auth:', auth.currentUser);
+                  console.log('- DB config:', db.app.options);
+                  console.log('- Network:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
+                }}
+                className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200"
+              >
+                État Système
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
