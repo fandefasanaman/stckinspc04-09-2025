@@ -15,6 +15,7 @@ interface FirestoreWithFallbackResult<T> {
   error: string | null;
   isOffline: boolean;
   isUsingFallback: boolean;
+  loadingMessage: string;
   retryConnection: () => void;
 }
 
@@ -116,6 +117,7 @@ export function useFirestoreWithFallback<T = DocumentData>(
   const [isOffline, setIsOffline] = useState(false);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState('Initialisation...');
   const mounted = useRef(true);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -137,23 +139,25 @@ export function useFirestoreWithFallback<T = DocumentData>(
     if (!mounted.current) return;
     
     const fallback = getFallbackData();
-    console.warn(`Utilisation des données de fallback pour ${collectionName}:`, errorMessage);
+    console.warn(`📦 Utilisation des données de fallback pour ${collectionName} (${fallback.length} éléments):`, errorMessage);
     
     setData(fallback);
     setIsUsingFallback(true);
     setIsOffline(true);
-    setError(errorMessage || 'Connexion Firebase indisponible - données locales utilisées');
+    setError(errorMessage || `Données locales utilisées (${fallback.length} éléments disponibles)`);
     setLoading(false);
+    setLoadingMessage('');
   };
 
   // Fonction pour réessayer la connexion
   const retryConnection = () => {
     if (!mounted.current) return;
     
-    console.log(`Tentative de reconnexion à Firebase pour ${collectionName}...`);
+    console.log(`🔄 Tentative de reconnexion à Firebase pour ${collectionName}...`);
     setRetryCount(prev => prev + 1);
     setError(null);
     setLoading(true);
+    setLoadingMessage('Reconnexion en cours...');
   };
 
   // Fonction principale pour se connecter à Firebase
@@ -161,13 +165,41 @@ export function useFirestoreWithFallback<T = DocumentData>(
     if (!mounted.current) return;
 
     try {
-      // Timeout pour éviter l'attente infinie
+      setLoadingMessage('Connexion à Firebase...');
+      
+      // 🚀 TIMEOUT OPTIMISÉ avec messages de progression
+      let progressStage = 0;
+      const progressMessages = [
+        'Connexion à Firebase...',
+        'Authentification en cours...',
+        'Chargement des données...',
+        'Synchronisation...',
+        'Finalisation...'
+      ];
+      
+      const progressInterval = setInterval(() => {
+        if (mounted.current && loading && progressStage < progressMessages.length - 1) {
+          progressStage++;
+          setLoadingMessage(progressMessages[progressStage]);
+        }
+      }, 4000); // Toutes les 4 secondes
+      
+      // Timeout augmenté à 25 secondes avec retry automatique
       const timeoutId = setTimeout(() => {
         if (mounted.current && loading) {
-          console.warn(`Timeout Firebase pour ${collectionName} - basculement vers fallback`);
-          useFallbackData('Timeout de connexion Firebase');
+          console.warn(`⏰ Timeout Firebase pour ${collectionName} après 25s - basculement vers fallback`);
+          
+          // Essayer un retry automatique avant le fallback
+          if (retryCount < 2) {
+            console.log(`🔄 Retry automatique ${retryCount + 1}/2 pour ${collectionName}`);
+            setRetryCount(prev => prev + 1);
+            setLoadingMessage('Nouvelle tentative...');
+            return;
+          }
+          
+          useFallbackData('Connexion lente - données locales chargées');
         }
-      }, 8000); // 8 secondes timeout
+      }, 25000); // 25 secondes timeout
 
       const q = query(collection(db, collectionName), ...queryConstraints);
       
@@ -175,6 +207,7 @@ export function useFirestoreWithFallback<T = DocumentData>(
         q,
         (querySnapshot) => {
           clearTimeout(timeoutId);
+          clearInterval(progressInterval);
           if (!mounted.current) return;
 
           try {
@@ -186,13 +219,13 @@ export function useFirestoreWithFallback<T = DocumentData>(
             // Sauvegarder dans le cache local
             localCache.set(collectionName, documents);
             
+            console.log(`✅ Firebase connecté avec succès pour ${collectionName}: ${documents.length} éléments`);
             setData(documents);
             setLoading(false);
             setError(null);
             setIsOffline(false);
             setIsUsingFallback(false);
-            
-            console.log(`Données Firebase chargées avec succès pour ${collectionName}:`, documents.length, 'éléments');
+            setLoadingMessage('');
           } catch (processingError) {
             console.error('Erreur lors du traitement des données Firebase:', processingError);
             useFallbackData('Erreur de traitement des données');
@@ -200,18 +233,19 @@ export function useFirestoreWithFallback<T = DocumentData>(
         },
         (firestoreError) => {
           clearTimeout(timeoutId);
+          clearInterval(progressInterval);
           if (!mounted.current) return;
           
           console.error('Erreur Firestore:', firestoreError);
           
           // Gestion spécifique des erreurs
-          let errorMessage = 'Erreur de connexion Firebase';
+          let errorMessage = 'Connexion Firebase interrompue';
           if (firestoreError.code === 'unavailable') {
-            errorMessage = 'Firebase temporairement indisponible';
+            errorMessage = 'Firebase temporairement indisponible - données locales utilisées';
           } else if (firestoreError.code === 'permission-denied') {
-            errorMessage = 'Permissions insuffisantes';
+            errorMessage = 'Permissions insuffisantes - vérifiez votre authentification';
           } else if (firestoreError.code === 'failed-precondition') {
-            errorMessage = 'Configuration Firebase incorrecte';
+            errorMessage = 'Configuration Firebase incorrecte - contactez l\'administrateur';
           }
           
           useFallbackData(errorMessage);
@@ -233,13 +267,15 @@ export function useFirestoreWithFallback<T = DocumentData>(
     setError(null);
     setIsOffline(false);
     setIsUsingFallback(false);
+    setLoadingMessage('Initialisation...');
 
     // Vérifier d'abord si on a des données en cache
     const cachedData = localCache.get(collectionName);
     if (cachedData && cachedData.length > 0) {
       setData(cachedData as T[]);
-      setLoading(false);
-      console.log(`Données en cache utilisées pour ${collectionName}`);
+      // Ne pas arrêter le loading, continuer à essayer Firebase en arrière-plan
+      console.log(`📦 Données en cache trouvées pour ${collectionName} (${cachedData.length} éléments)`);
+      setLoadingMessage('Synchronisation avec Firebase...');
     }
 
     // Essayer de se connecter à Firebase
@@ -270,6 +306,7 @@ export function useFirestoreWithFallback<T = DocumentData>(
     error, 
     isOffline, 
     isUsingFallback,
+    loadingMessage,
     retryConnection
   };
 }

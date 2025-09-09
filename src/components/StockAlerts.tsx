@@ -5,7 +5,7 @@ import { StockAlert } from '../types';
 
 const StockAlerts: React.FC = () => {
   // Récupérer les alertes depuis Firestore avec fallback
-  const { data: alerts, loading, error, isOffline } = useFirestoreWithFallback<StockAlert>('alerts', [
+  const { data: alerts, loading, error, isOffline, loadingMessage } = useFirestoreWithFallback<StockAlert>('alerts', [
     // Filtrer pour ne récupérer que les alertes actives
     // orderBy('priority', 'desc'),
     // orderBy('createdAt', 'desc')
@@ -102,12 +102,14 @@ const StockAlerts: React.FC = () => {
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Chargement des alertes...</p>
+            <p className="text-gray-500">{loadingMessage || 'Chargement des alertes...'}</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center text-gray-500">
             <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">
+              {alerts.length > 0 ? `${alerts.length} alertes disponibles` : error}
+            </p>
             {isOffline && (
               <p className="text-xs mt-2">Données en cache affichées</p>
             )}

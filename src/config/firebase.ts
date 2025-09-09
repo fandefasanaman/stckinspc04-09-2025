@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
@@ -28,12 +28,27 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
+// 🚀 OPTIMISATION FIREBASE - Configuration pour de meilleurs timeouts
+try {
+  // Forcer le long polling pour des connexions plus stables
+  if (typeof window !== 'undefined' && (db as any)._delegate) {
+    (db as any)._delegate._databaseId.settings = {
+      ...(db as any)._delegate._databaseId.settings,
+      experimentalForceLongPolling: true,
+      cacheSizeBytes: 40000000, // 40MB cache
+      experimentalTabSynchronization: true
+    };
+  }
+} catch (error) {
+  console.warn('Impossible d\'optimiser les paramètres Firestore:', error);
+}
+
 // Test de connexion Firebase au démarrage
 auth.onAuthStateChanged((user) => {
   console.log('🔍 Auth State Changed:', user ? `Connecté: ${user.uid}` : 'Déconnecté');
 });
 
-// Enable offline persistence
+// Enable offline persistence avec gestion d'erreur améliorée
 enableIndexedDbPersistence(db).catch((err) => {
   if (err.code === 'failed-precondition') {
     // Multiple tabs open, persistence can only be enabled in one tab at a time
