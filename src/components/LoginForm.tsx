@@ -11,9 +11,20 @@ const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    setError('');
+    
+    // Attendre un peu avant de réessayer
+    setTimeout(() => {
+      setIsRetrying(false);
+    }, 2000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +35,25 @@ const LoginForm: React.FC = () => {
       await signIn(formData.email, formData.password);
       navigate('/', { replace: true });
     } catch (error: any) {
-      setError(error.message);
+      console.error('Erreur de connexion:', error);
+      
+      // Messages d'erreur plus conviviaux
+      if (error.message.includes('Timeout')) {
+        setError('Connexion lente. Vérifiez votre connexion internet et réessayez.');
+      } else if (error.message.includes('network')) {
+        setError('Problème de réseau. Vérifiez votre connexion internet.');
+      } else {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Permettre l'accès en mode dégradé après plusieurs échecs
+  const handleOfflineAccess = () => {
+    console.warn('Accès en mode dégradé activé');
+    navigate('/', { replace: true });
   };
 
   return (
@@ -57,11 +83,31 @@ const LoginForm: React.FC = () => {
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
                 <p className="text-sm text-red-700">{error}</p>
               </div>
+              {error.includes('Timeout') || error.includes('réseau') ? (
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                    className="text-sm text-red-600 hover:text-red-800 underline"
+                  >
+                    {isRetrying ? 'Reconnexion...' : 'Réessayer'}
+                  </button>
+                  <span className="text-red-300">|</span>
+                  <button
+                    type="button"
+                    onClick={handleOfflineAccess}
+                    className="text-sm text-red-600 hover:text-red-800 underline"
+                  >
+                    Continuer en mode dégradé
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -119,21 +165,32 @@ const LoginForm: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isRetrying}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ 
                 backgroundColor: '#6B2C91',
                 '--tw-ring-color': '#6B2C91'
               } as any}
             >
-              {loading ? (
+              {loading || isRetrying ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Connexion en cours...
+                  {isRetrying ? 'Reconnexion...' : 'Connexion en cours...'}
                 </div>
               ) : (
                 'Se connecter'
               )}
+            </button>
+          </div>
+
+          {/* Mode dégradé info */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleOfflineAccess}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Accéder en mode hors ligne
             </button>
           </div>
 

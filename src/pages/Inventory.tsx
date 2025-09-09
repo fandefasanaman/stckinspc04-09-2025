@@ -14,7 +14,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
 import { InventoryService } from '../services/inventoryService';
 import NewInventoryModal from '../components/modals/NewInventoryModal';
-import { Inventory, InventoryItem } from '../types';
+import { Inventory as InventoryType, InventoryItem } from '../types';
 
 const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +24,7 @@ const Inventory: React.FC = () => {
   const { userData } = useAuth();
 
   // Utiliser le hook useFirestore pour récupérer les inventaires en temps réel
-  const { data: inventories, loading: inventoriesLoading, error } = useFirestore<Inventory>('inventories');
+  const { data: inventories, loading: inventoriesLoading, error } = useFirestore<InventoryType>('inventories');
 
   const inventoryStatuses = [
     { value: 'all', label: 'Tous les inventaires' },

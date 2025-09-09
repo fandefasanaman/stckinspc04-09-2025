@@ -79,8 +79,6 @@ const TopArticles: React.FC = () => {
                     {article?.name}
                   </p>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium" style={{ color: '#6B2C91' }}>
-                      {article.totalExits}
                     <p className="text-sm font-bold" style={{ color: '#6B2C91' }}>{article?.totalExits} sorties</p>
                     <span className="text-xs text-green-600 font-medium">
                       {article?.trend}
@@ -116,9 +114,6 @@ const TopArticles: React.FC = () => {
           </button>
         </div>
       </div>
-    )
-    )
-    }
     </div>
   );
 };

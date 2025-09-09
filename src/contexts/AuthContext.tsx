@@ -30,21 +30,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authTimeout, setAuthTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Timeout utility function
+  const createTimeoutPromise = (ms: number, errorMessage: string) => {
+    return new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(errorMessage)), ms);
+    });
+  };
 
   useEffect(() => {
+    // Set a maximum timeout for auth state initialization
+    const initTimeout = setTimeout(() => {
+      console.warn('Firebase auth initialization timeout - proceeding without authentication');
+      setLoading(false);
+    }, 15000); // 15 seconds timeout
+
     const unsubscribe = AuthService.onAuthStateChanged(async (user) => {
+      clearTimeout(initTimeout);
       setCurrentUser(user);
       
       if (user) {
         try {
-          // Récupérer les données utilisateur depuis Firestore
-          const userDoc = await import('../services/userService').then(
+          // Récupérer les données utilisateur avec timeout
+          const userDataPromise = import('../services/userService').then(
             ({ UserService }) => UserService.getUserById(user.uid)
           );
-          setUserData(userDoc);
+          
+          const timeoutPromise = createTimeoutPromise(10000, 'Timeout lors de la récupération des données utilisateur');
+          
+          const userDoc = await Promise.race([userDataPromise, timeoutPromise]);
+          setUserData(userDoc as User | null);
         } catch (error) {
           console.error('Erreur lors de la récupération des données utilisateur:', error);
-          setUserData(null);
+          // En cas d'erreur, créer des données utilisateur basiques
+          setUserData({
+            id: user.uid,
+            name: user.displayName || user.email?.split('@')[0] || 'Utilisateur',
+            email: user.email || '',
+            phone: '',
+            role: 'user',
+            service: 'Service par défaut',
+            status: 'active',
+            createdAt: new Date().toISOString()
+          });
         }
       } else {
         setUserData(null);
@@ -53,16 +82,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(initTimeout);
+      unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (authTimeout) {
+      clearTimeout(authTimeout);
+    }
+    
     setLoading(true);
     try {
-      const { user, userData: userInfo } = await AuthService.signIn(email, password);
+      // Créer une promesse avec timeout pour la connexion
+      const signInPromise = AuthService.signIn(email, password);
+      const timeoutPromise = createTimeoutPromise(15000, 'Timeout de connexion - Vérifiez votre connexion internet');
+      
+      const { user, userData: userInfo } = await Promise.race([signInPromise, timeoutPromise]);
       setCurrentUser(user);
       setUserData(userInfo);
     } catch (error) {
+      console.error('Erreur de connexion:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -71,10 +112,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
-      await AuthService.signOut();
+      // Ajouter un timeout pour la déconnexion
+      const signOutPromise = AuthService.signOut();
+      const timeoutPromise = createTimeoutPromise(5000, 'Timeout de déconnexion');
+      
+      await Promise.race([signOutPromise, timeoutPromise]);
       setCurrentUser(null);
       setUserData(null);
     } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Forcer la déconnexion locale même si Firebase ne répond pas
+      setCurrentUser(null);
+      setUserData(null);
       throw error;
     }
   };

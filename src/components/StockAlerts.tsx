@@ -5,7 +5,7 @@ import { StockAlert } from '../types';
 
 const StockAlerts: React.FC = () => {
   // Récupérer les alertes depuis Firestore
-  const { data: alerts } = useFirestore<StockAlert>('alerts', [
+  const { data: alerts, loading, error, isOffline } = useFirestore<StockAlert>('alerts', [
     // Filtrer pour ne récupérer que les alertes actives
     // orderBy('priority', 'desc'),
     // orderBy('createdAt', 'desc')
@@ -56,17 +56,37 @@ const StockAlerts: React.FC = () => {
           <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
             Alertes Stock
           </h3>
-          <span 
-            className="px-2 py-1 text-xs font-medium text-white rounded-full"
-            style={{ backgroundColor: '#DC143C' }}
-          >
-            {activeAlerts.length}
-          </span>
+          <div className="flex items-center space-x-2">
+            {isOffline && (
+              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                Hors ligne
+              </span>
+            )}
+            <span 
+              className="px-2 py-1 text-xs font-medium text-white rounded-full"
+              style={{ backgroundColor: '#DC143C' }}
+            >
+              {activeAlerts.length}
+            </span>
+          </div>
         </div>
       </div>
       
       <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-        {activeAlerts.length > 0 ? activeAlerts.map((alert) => {
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Chargement des alertes...</p>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center text-gray-500">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-sm">{error}</p>
+            {isOffline && (
+              <p className="text-xs mt-2">Données en cache affichées</p>
+            )}
+          </div>
+        ) : activeAlerts.length > 0 ? activeAlerts.map((alert) => {
           const Icon = getAlertIcon(alert.type);
           const priorityColor = getPriorityColor(alert.priority);
           
@@ -114,6 +134,7 @@ const StockAlerts: React.FC = () => {
       
       <div className="p-4 border-t border-gray-200">
         <button 
+          disabled={loading}
           className="w-full py-2 px-4 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
           style={{ backgroundColor: '#6B2C91' }}
         >
