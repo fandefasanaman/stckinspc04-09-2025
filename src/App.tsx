@@ -7,7 +7,6 @@ import { InventoryServiceWithFallback } from './services/inventoryServiceWithFal
 import { ReportServiceWithFallback } from './services/reportServiceWithFallback';
 import { UserServiceWithFallback } from './services/userServiceWithFallback';
 import { SettingsServiceWithFallback } from './services/settingsServiceWithFallback';
-import { InventoryServiceWithFallback } from './services/inventoryServiceWithFallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginForm from './components/LoginForm';
 import Sidebar from './components/Sidebar';
@@ -82,7 +81,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/inventory" element={
-              <ProtectedRoute requiredRole="supervisor">
+              <ProtectedRoute>
                 <Inventory />
               </ProtectedRoute>
             } />
