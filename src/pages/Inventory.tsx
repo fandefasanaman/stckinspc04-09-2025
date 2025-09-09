@@ -7,12 +7,15 @@ import {
   Calendar,
   CheckCircle,
   AlertTriangle,
-  Package
+  Package,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { useAuth } from '../contexts/AuthContext';
-import { InventoryServiceWithFallback } from './services/inventoryServiceWithFallback';
+import { InventoryServiceWithFallback } from '../services/inventoryServiceWithFallback';
 import NewInventoryModal from '../components/modals/NewInventoryModal';
 import { Inventory as InventoryType, InventoryItem } from '../types';
 
@@ -32,7 +35,36 @@ const Inventory: React.FC = () => {
     isUsingFallback, 
     loadingMessage,
     retryConnection 
-  } = useFirestoreWithFallback<InventoryType>('inventories');
+  } = useFirestoreWithFallback<InventoryType>('inventories', [], [
+    // Données de fallback pour les inventaires
+    {
+      id: 'fallback-inv-1',
+      name: 'Inventaire Trimestriel Q1 2024',
+      category: 'Général',
+      responsible: 'Marie Kouassi',
+      scheduledDate: '2024-01-15',
+      status: 'completed',
+      articlesCount: 45,
+      discrepancies: 3,
+      description: 'Inventaire trimestriel complet',
+      includeCategories: ['Fournitures Bureau', 'Consommables IT'],
+      createdAt: '2024-01-10T08:00:00.000Z',
+      completedAt: '2024-01-15T17:30:00.000Z'
+    },
+    {
+      id: 'fallback-inv-2',
+      name: 'Inventaire Médical Janvier',
+      category: 'Consommables Médicaux',
+      responsible: 'Dr. Jean Koffi',
+      scheduledDate: '2024-01-20',
+      status: 'in_progress',
+      articlesCount: 28,
+      discrepancies: 0,
+      description: 'Inventaire des consommables médicaux',
+      includeCategories: ['Consommables Médicaux'],
+      createdAt: '2024-01-18T09:00:00.000Z'
+    }
+  ]);
 
   const inventoryStatuses = [
     { value: 'all', label: 'Tous les inventaires' },
@@ -229,11 +261,14 @@ const Inventory: React.FC = () => {
           {/* 🚀 INDICATEUR DE STATUT AMÉLIORÉ */}
           <div className="flex items-center mt-2 space-x-4">
             <div className="flex items-center">
-              {isOffline ? (
-                <span className="text-sm text-red-600">Mode hors ligne</span>
+              <ClipboardList className="w-5 h-5 text-blue-500 mr-2" />
+                <WifiOff className="w-4 h-4 text-red-500 mr-2" />
               ) : (
-                <span className="text-sm text-green-600">Connecté ({inventories.length} inventaires)</span>
+                <Wifi className="w-4 h-4 text-green-500 mr-2" />
               )}
+              <span className={`text-sm ${isOffline ? 'text-red-600' : 'text-green-600'}`}>
+                {isOffline ? 'Mode hors ligne' : `Connecté (${inventories.length} inventaires)`}
+              </span>
             </div>
             
             {isUsingFallback && (
@@ -248,6 +283,13 @@ const Inventory: React.FC = () => {
                 >
                   <RefreshCw className="w-4 h-4 text-gray-500" />
                 </button>
+              </div>
+            )}
+            
+            {loadingMessage && (
+              <div className="flex items-center">
+                <div className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full mr-2"></div>
+                <span className="text-xs text-blue-600">{loadingMessage}</span>
               </div>
             )}
           </div>

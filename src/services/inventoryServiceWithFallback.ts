@@ -22,9 +22,11 @@ export class InventoryServiceWithFallback {
     console.log('🔍 DIAGNOSTIC InventoryService.createInventory:');
     console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
     console.log('- User ID:', auth.currentUser?.uid);
+    console.log('- User email:', auth.currentUser?.email);
     console.log('- Données inventaire:', inventoryData);
+    console.log('- DB config:', db.app.options);
     console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
-
+    
     const newInventory = {
       ...inventoryData,
       createdAt: new Date().toISOString()
@@ -32,6 +34,7 @@ export class InventoryServiceWithFallback {
 
     try {
       console.log('🚀 Tentative d\'écriture Firebase pour inventaire...');
+      // Essayer d'abord Firebase
       const docRef = await addDoc(collection(db, this.inventoriesCollection), newInventory);
       console.log('✅ Inventaire créé avec succès dans Firebase:', docRef.id);
       return docRef.id;
@@ -39,6 +42,7 @@ export class InventoryServiceWithFallback {
       console.error('❌ Erreur Firebase lors de la création de l\'inventaire:', error);
       console.error('- Code erreur:', (error as any).code);
       console.error('- Message:', (error as any).message);
+      console.error('- Stack:', (error as any).stack);
       
       // Fallback: sauvegarder localement
       const localId = `local-inventory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -59,6 +63,7 @@ export class InventoryServiceWithFallback {
   static async updateInventory(id: string, updates: Partial<Inventory>): Promise<void> {
     try {
       console.log('🚀 Tentative de mise à jour Firebase pour inventaire:', id);
+      // Essayer d'abord Firebase
       const docRef = doc(db, this.inventoriesCollection, id);
       await updateDoc(docRef, updates);
       console.log('✅ Inventaire mis à jour avec succès dans Firebase:', id);
@@ -82,14 +87,13 @@ export class InventoryServiceWithFallback {
     try {
       console.log('🚀 Tentative de suppression Firebase pour inventaire:', id);
       
-      // Utiliser une transaction pour supprimer l'inventaire et ses éléments
+      // Essayer d'abord Firebase avec transaction pour supprimer aussi les items
       await runTransaction(db, async (transaction) => {
         // Supprimer l'inventaire
         const inventoryRef = doc(db, this.inventoriesCollection, id);
         transaction.delete(inventoryRef);
         
-        // Note: Les éléments d'inventaire seront supprimés par une requête séparée
-        // car les transactions ne supportent pas les requêtes complexes
+        // Note: Les items d'inventaire seront supprimés par les règles de cascade ou séparément
       });
       
       console.log('✅ Inventaire supprimé avec succès de Firebase:', id);
@@ -111,6 +115,7 @@ export class InventoryServiceWithFallback {
   static async createInventoryItem(itemData: Omit<InventoryItem, 'id'>): Promise<string> {
     try {
       console.log('🚀 Tentative d\'écriture Firebase pour élément d\'inventaire...');
+      // Essayer d'abord Firebase
       const docRef = await addDoc(collection(db, this.inventoryItemsCollection), itemData);
       console.log('✅ Élément d\'inventaire créé avec succès dans Firebase:', docRef.id);
       return docRef.id;
@@ -141,6 +146,7 @@ export class InventoryServiceWithFallback {
 
     try {
       console.log('🚀 Tentative de mise à jour Firebase pour élément d\'inventaire:', id);
+      // Essayer d'abord Firebase
       const docRef = doc(db, this.inventoryItemsCollection, id);
       await updateDoc(docRef, updateData);
       console.log('✅ Élément d\'inventaire mis à jour avec succès dans Firebase:', id);
@@ -189,6 +195,7 @@ export class InventoryServiceWithFallback {
 
   // Programmer une synchronisation ultérieure
   private static scheduleSync(operation: string, data: any) {
+    // Sauvegarder les opérations en attente dans localStorage
     const pendingOps = JSON.parse(localStorage.getItem('pendingInventoryOps') || '[]');
     pendingOps.push({
       operation,
