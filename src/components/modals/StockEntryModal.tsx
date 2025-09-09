@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, Save, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
-import { useFirestore } from '../../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
 import { Article, Supplier, StockLocation } from '../../types';
-import { SupplierService } from '../../services/supplierService';
-import { LocationService } from '../../services/locationService';
 
 interface StockEntryModalProps {
   isOpen: boolean;
@@ -29,9 +27,9 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
   });
 
   // Récupérer les articles depuis Firestore
-  const { data: articles } = useFirestore<Article>('articles');
-  const { data: suppliers } = useFirestore<Supplier>('suppliers');
-  const { data: locations } = useFirestore<StockLocation>('locations');
+  const { data: articles } = useFirestoreWithFallback<Article>('articles');
+  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers');
+  const { data: locations } = useFirestoreWithFallback<StockLocation>('locations');
 
   // Filtrer les fournisseurs et emplacements actifs
   const activeSuppliers = suppliers.filter(s => s.status === 'active');

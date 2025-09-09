@@ -8,12 +8,15 @@ import {
   Calendar,
   User,
   Building,
-  Download
+  Download,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { useAuth } from '../contexts/AuthContext';
-import { MovementService } from '../services/movementService';
+import { MovementServiceWithFallback } from '../services/movementServiceWithFallback';
 import StockEntryModal from '../components/modals/StockEntryModal';
 import StockExitModal from '../components/modals/StockExitModal';
 import { Movement } from '../types';
@@ -27,8 +30,53 @@ const Movements: React.FC = () => {
   const stockExitModal = useModal();
   const { userData } = useAuth();
 
-  // Utiliser le hook useFirestore pour récupérer les mouvements en temps réel
-  const { data: movements, loading: movementsLoading, error } = useFirestore<Movement>('movements');
+  // Utiliser le hook avec fallback pour récupérer les mouvements
+  const { 
+    data: movements, 
+    loading: movementsLoading, 
+    error, 
+    isOffline, 
+    isUsingFallback, 
+    loadingMessage,
+    retryConnection 
+  } = useFirestoreWithFallback<Movement>('movements', [], [
+    // Données de fallback pour les mouvements
+    {
+      id: 'fallback-mov-1',
+      type: 'exit',
+      articleId: 'fallback-1',
+      articleCode: 'FB001',
+      articleName: 'Papier A4 80g',
+      quantity: 15,
+      unit: 'paquet',
+      userId: 'user-1',
+      userName: 'Marie Kouassi',
+      service: 'Service Administratif',
+      beneficiary: 'Secrétariat',
+      reason: 'Consommables bureau',
+      status: 'validated',
+      date: '2024-01-23',
+      time: '14:30',
+      createdAt: '2024-01-23T14:30:00.000Z'
+    },
+    {
+      id: 'fallback-mov-2',
+      type: 'entry',
+      articleId: 'fallback-2',
+      articleCode: 'IT002',
+      articleName: 'Cartouches HP 305',
+      quantity: 25,
+      unit: 'unité',
+      userId: 'user-2',
+      userName: 'Jean Koffi',
+      service: 'Service IT',
+      supplier: 'DISTRIMAD',
+      status: 'validated',
+      date: '2024-01-22',
+      time: '10:15',
+      createdAt: '2024-01-22T10:15:00.000Z'
+    }
+  ]);
 
   const movementTypes = [
     { value: 'all', label: 'Tous les mouvements' },
@@ -97,7 +145,7 @@ const Movements: React.FC = () => {
     
     setLoading(true);
     try {
-      await MovementService.createStockEntry({
+      await MovementServiceWithFallback.createStockEntry({
         articleId: entryData.articleId,
         quantity: parseInt(entryData.quantity),
         supplier: entryData.supplier,
@@ -122,7 +170,7 @@ const Movements: React.FC = () => {
     
     setLoading(true);
     try {
-      await MovementService.createStockExit({
+      await MovementServiceWithFallback.createStockExit({
         articleId: exitData.articleId,
         quantity: parseInt(exitData.quantity),
         beneficiary: exitData.beneficiary,
@@ -146,17 +194,31 @@ const Movements: React.FC = () => {
   if (movementsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4" style={{ borderColor: '#6B2C91' }}></div>
+          <p className="text-lg font-medium" style={{ color: '#6B2C91' }}>
+            {loadingMessage}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Connexion à Firebase en cours...
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && movements.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">Impossible de charger les mouvements</p>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={retryConnection}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
@@ -170,9 +232,53 @@ const Movements: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Mouvements de Stock
           </h1>
+          <div className="flex items-center space-x-2 mt-2">
+            <button
+              onClick={() => console.log('🔍 Diagnostic mouvements:', { movements: movements.length, isOffline, isUsingFallback })}
+              className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+            >
+              📊 Info Système
+            </button>
+          </div>
           <p className="text-gray-600 mt-1">
             Suivez toutes les entrées et sorties de stock
           </p>
+          
+          {/* 🚀 INDICATEUR DE STATUT AMÉLIORÉ */}
+          <div className="flex items-center mt-2 space-x-4">
+            <div className="flex items-center">
+              {isOffline ? (
+                <WifiOff className="w-4 h-4 text-red-500 mr-2" />
+              ) : (
+                <Wifi className="w-4 h-4 text-green-500 mr-2" />
+              )}
+              <span className={`text-sm ${isOffline ? 'text-red-600' : 'text-green-600'}`}>
+                {isOffline ? 'Mode hors ligne' : `Connecté (${movements.length} mouvements)`}
+              </span>
+            </div>
+            
+            {isUsingFallback && (
+              <div className="flex items-center">
+                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  Données locales ({movements.length})
+                </span>
+                <button
+                  onClick={retryConnection}
+                  className="ml-2 p-1 hover:bg-gray-100 rounded"
+                  title="Réessayer la connexion"
+                >
+                  <RefreshCw className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            )}
+            
+            {loadingMessage && (
+              <div className="flex items-center">
+                <div className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full mr-2"></div>
+                <span className="text-xs text-blue-600">{loadingMessage}</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex space-x-3">
           <button 
@@ -198,6 +304,33 @@ const Movements: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* 🚀 MESSAGE D'ÉTAT AMÉLIORÉ */}
+        {error && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <ArrowUp className="w-5 h-5 text-blue-500 mr-2" />
+              <div className="flex-1">
+                <p className="text-sm text-blue-800">
+                  {error} • {movements.length} mouvements disponibles
+                </p>
+                {isUsingFallback && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    ✅ Vous pouvez continuer à travailler • Synchronisation automatique en arrière-plan
+                  </p>
+                )}
+              </div>
+              {(isOffline || isUsingFallback) && (
+                <button
+                  onClick={retryConnection}
+                  className="ml-2 px-3 py-1 text-xs bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+                >
+                  Réessayer
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
           <div className="relative">

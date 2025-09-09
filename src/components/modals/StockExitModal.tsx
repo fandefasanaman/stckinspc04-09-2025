@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ArrowDown, Save } from 'lucide-react';
-import { useFirestore } from '../../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
 import { Article } from '../../types';
 
 interface StockExitModalProps {
@@ -22,7 +22,7 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
   });
 
   // Récupérer les articles depuis Firestore
-  const { data: articles } = useFirestore<Article>('articles');
+  const { data: articles } = useFirestoreWithFallback<Article>('articles');
 
   const services = [
     'Service Pédagogique et Scientifique',

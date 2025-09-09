@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ArticleServiceWithFallback } from './services/articleServiceWithFallback';
+import { MovementServiceWithFallback } from './services/movementServiceWithFallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginForm from './components/LoginForm';
 import Sidebar from './components/Sidebar';
@@ -16,6 +17,9 @@ import Settings from './pages/Settings';
 
 // Démarrer la synchronisation automatique des articles
 ArticleServiceWithFallback.startAutoSync();
+
+// Démarrer la synchronisation automatique des mouvements
+MovementServiceWithFallback.startAutoSync();
 
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();
