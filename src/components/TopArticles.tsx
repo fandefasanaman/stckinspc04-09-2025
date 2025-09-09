@@ -1,12 +1,30 @@
 import React from 'react';
 import { TrendingUp, Package } from 'lucide-react';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { Movement, Article } from '../types';
 
 const TopArticles: React.FC = () => {
-  // Récupérer les mouvements et articles depuis Firestore
-  const { data: movements } = useFirestore<Movement>('movements');
-  const { data: articles } = useFirestore<Article>('articles');
+  // Récupérer les mouvements et articles depuis Firestore avec fallback
+  const { data: movements } = useFirestoreWithFallback<Movement>('movements', [], [
+    // Données de fallback pour les mouvements
+    {
+      id: 'mov-1',
+      type: 'exit',
+      articleId: 'fallback-1',
+      articleCode: 'FB001',
+      articleName: 'Papier A4 80g',
+      quantity: 15,
+      unit: 'paquet',
+      userId: 'user-1',
+      userName: 'Marie Kouassi',
+      service: 'Service Administratif',
+      status: 'validated',
+      date: '2024-01-23',
+      time: '14:30',
+      createdAt: '2024-01-23T14:30:00.000Z'
+    }
+  ]);
+  const { data: articles } = useFirestoreWithFallback<Article>('articles');
 
   // Calculer les articles les plus sortis
   const calculateTopArticles = () => {

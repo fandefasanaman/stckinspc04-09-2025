@@ -1,14 +1,40 @@
 import React from 'react';
 import { AlertTriangle, Package, Calendar } from 'lucide-react';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { StockAlert } from '../types';
 
 const StockAlerts: React.FC = () => {
-  // Récupérer les alertes depuis Firestore
-  const { data: alerts, loading, error, isOffline } = useFirestore<StockAlert>('alerts', [
+  // Récupérer les alertes depuis Firestore avec fallback
+  const { data: alerts, loading, error, isOffline } = useFirestoreWithFallback<StockAlert>('alerts', [
     // Filtrer pour ne récupérer que les alertes actives
     // orderBy('priority', 'desc'),
     // orderBy('createdAt', 'desc')
+  ], [
+    // Données de fallback pour les alertes
+    {
+      id: 'alert-1',
+      type: 'low_stock',
+      articleId: 'fallback-2',
+      articleCode: 'IT002',
+      articleName: 'Cartouches HP 305',
+      currentStock: 8,
+      minStock: 15,
+      priority: 'high',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'alert-2',
+      type: 'out_of_stock',
+      articleId: 'fallback-3',
+      articleCode: 'MED003',
+      articleName: 'Gants latex M',
+      currentStock: 0,
+      minStock: 10,
+      priority: 'critical',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    }
   ]);
 
   const getPriorityColor = (priority: string) => {
