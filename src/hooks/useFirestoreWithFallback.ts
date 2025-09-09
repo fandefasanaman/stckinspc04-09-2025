@@ -103,6 +103,106 @@ const FALLBACK_ARTICLES = [
   }
 ];
 
+// Données de fallback pour les inventaires
+const FALLBACK_INVENTORIES = [
+  {
+    id: 'fallback-inv-1',
+    name: 'Inventaire Trimestriel Q1 2024',
+    category: 'Général',
+    responsible: 'Marie Kouassi',
+    scheduledDate: '2024-03-15',
+    status: 'completed' as const,
+    articlesCount: 125,
+    discrepancies: 3,
+    description: 'Inventaire trimestriel complet de tous les articles',
+    includeCategories: ['Fournitures Bureau', 'Consommables IT'],
+    createdAt: '2024-03-01T08:00:00.000Z',
+    completedAt: '2024-03-15T17:30:00.000Z'
+  },
+  {
+    id: 'fallback-inv-2',
+    name: 'Inventaire Médical Janvier',
+    category: 'Consommables Médicaux',
+    responsible: 'Dr. Aya Traoré',
+    scheduledDate: '2024-01-30',
+    status: 'validated' as const,
+    articlesCount: 45,
+    discrepancies: 1,
+    description: 'Inventaire spécialisé des consommables médicaux',
+    includeCategories: ['Consommables Médicaux'],
+    createdAt: '2024-01-20T09:00:00.000Z',
+    completedAt: '2024-01-30T16:00:00.000Z',
+    validatedAt: '2024-02-01T10:00:00.000Z'
+  }
+];
+
+// Données de fallback pour les rapports
+const FALLBACK_REPORTS = [
+  {
+    id: 'fallback-report-1',
+    name: 'Rapport Mensuel Janvier 2024',
+    type: 'stock_status' as const,
+    period: 'month',
+    format: 'pdf' as const,
+    includeCharts: true,
+    includeDetails: true,
+    services: ['Service Administratif', 'Service IT'],
+    categories: ['Fournitures Bureau', 'Consommables IT'],
+    createdBy: 'admin-1',
+    createdAt: '2024-02-01T10:00:00.000Z',
+    lastGenerated: '2024-02-01T10:30:00.000Z'
+  },
+  {
+    id: 'fallback-report-2',
+    name: 'Analyse Consommation Q1',
+    type: 'consumption' as const,
+    period: 'quarter',
+    format: 'excel' as const,
+    includeCharts: false,
+    includeDetails: true,
+    services: ['Tous'],
+    categories: ['Toutes'],
+    createdBy: 'manager-1',
+    createdAt: '2024-03-31T15:00:00.000Z'
+  }
+];
+
+// Données de fallback pour les utilisateurs
+const FALLBACK_USERS = [
+  {
+    id: 'fallback-user-1',
+    name: 'Marie Kouassi',
+    email: 'marie.kouassi@inspc.mg',
+    phone: '+261 34 12 345 67',
+    role: 'manager' as const,
+    service: 'Service Administratif',
+    status: 'active' as const,
+    createdAt: '2024-01-01T08:00:00.000Z',
+    lastLogin: '2024-01-25T09:30:00.000Z'
+  },
+  {
+    id: 'fallback-user-2',
+    name: 'Dr. Aya Traoré',
+    email: 'aya.traore@inspc.mg',
+    phone: '+261 34 23 456 78',
+    role: 'supervisor' as const,
+    service: 'Service Médical',
+    status: 'active' as const,
+    createdAt: '2024-01-05T10:00:00.000Z',
+    lastLogin: '2024-01-24T14:15:00.000Z'
+  },
+  {
+    id: 'fallback-user-3',
+    name: 'Jean Koffi',
+    email: 'jean.koffi@inspc.mg',
+    phone: '+261 34 34 567 89',
+    role: 'user' as const,
+    service: 'Service IT',
+    status: 'active' as const,
+    createdAt: '2024-01-10T11:00:00.000Z',
+    lastLogin: '2024-01-23T16:45:00.000Z'
+  }
+];
 // Cache local pour les données
 const localCache = new Map<string, any[]>();
 
@@ -129,6 +229,12 @@ export function useFirestoreWithFallback<T = DocumentData>(
     switch (collectionName) {
       case 'articles':
         return FALLBACK_ARTICLES as T[];
+      case 'inventories':
+        return FALLBACK_INVENTORIES as T[];
+      case 'reports':
+        return FALLBACK_REPORTS as T[];
+      case 'users':
+        return FALLBACK_USERS as T[];
       default:
         return localCache.get(collectionName) || [];
     }

@@ -13,10 +13,9 @@ import {
   Building
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { useAuth } from '../contexts/AuthContext';
-import { UserService } from '../services/userService';
-import { AuthService } from '../services/authService';
+import { UserServiceWithFallback } from '../services/userServiceWithFallback';
 import NewUserModal from '../components/modals/NewUserModal';
 import { User as UserType } from '../types';
 
@@ -27,8 +26,16 @@ const Users: React.FC = () => {
   const newUserModal = useModal();
   const { userData } = useAuth();
 
-  // Utiliser le hook useFirestore pour récupérer les utilisateurs en temps réel
-  const { data: users, loading: usersLoading, error } = useFirestore<UserType>('users');
+  // Utiliser le hook avec fallback pour récupérer les utilisateurs
+  const { 
+    data: users, 
+    loading: usersLoading, 
+    error, 
+    isOffline, 
+    isUsingFallback, 
+    loadingMessage,
+    retryConnection 
+  } = useFirestoreWithFallback<UserType>('users');
 
   const roles = [
     { value: 'all', label: 'Tous les rôles' },
@@ -85,7 +92,7 @@ const Users: React.FC = () => {
     setLoading(true);
     try {
       // Créer l'utilisateur avec Firebase Auth et Firestore
-      await AuthService.createUser({
+      await UserServiceWithFallback.createUser({
         name: newUserData.name,
         email: newUserData.email,
         phone: newUserData.phone,
@@ -105,7 +112,7 @@ const Users: React.FC = () => {
 
   const handleEditUser = async (userId: string, updates: Partial<UserType>) => {
     try {
-      await UserService.updateUser(userId, updates);
+      await UserServiceWithFallback.updateUser(userId, updates);
     } catch (error: any) {
       console.error('Erreur lors de la modification de l\'utilisateur:', error);
       alert('Erreur lors de la modification: ' + error.message);
@@ -116,7 +123,7 @@ const Users: React.FC = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
     
     try {
-      await UserService.deleteUser(userId);
+      await UserServiceWithFallback.deleteUser(userId);
     } catch (error: any) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', error);
       alert('Erreur lors de la suppression: ' + error.message);
@@ -133,17 +140,31 @@ const Users: React.FC = () => {
   if (usersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4" style={{ borderColor: '#6B2C91' }}></div>
+          <p className="text-lg font-medium" style={{ color: '#6B2C91' }}>
+            {loadingMessage}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Connexion à Firebase en cours...
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && users.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">Impossible de charger les utilisateurs</p>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={retryConnection}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
@@ -157,6 +178,31 @@ const Users: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Utilisateurs
           </h1>
+          {/* 🚀 INDICATEUR DE STATUT AMÉLIORÉ */}
+          <div className="flex items-center mt-2 space-x-4">
+            <div className="flex items-center">
+              {isOffline ? (
+                <span className="text-sm text-red-600">Mode hors ligne</span>
+              ) : (
+                <span className="text-sm text-green-600">Connecté ({users.length} utilisateurs)</span>
+              )}
+            </div>
+            
+            {isUsingFallback && (
+              <div className="flex items-center">
+                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  Données locales ({users.length})
+                </span>
+                <button
+                  onClick={retryConnection}
+                  className="ml-2 p-1 hover:bg-gray-100 rounded"
+                  title="Réessayer la connexion"
+                >
+                  <RefreshCw className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            )}
+          </div>
           <p className="text-gray-600 mt-1">
             Gérez les comptes utilisateurs et leurs permissions
           </p>
@@ -245,6 +291,33 @@ const Users: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* 🚀 MESSAGE D'ÉTAT AMÉLIORÉ */}
+        {error && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <Users className="w-5 h-5 text-blue-500 mr-2" />
+              <div className="flex-1">
+                <p className="text-sm text-blue-800">
+                  {error} • {users.length} utilisateurs disponibles
+                </p>
+                {isUsingFallback && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    ✅ Vous pouvez continuer à travailler • Synchronisation automatique en arrière-plan
+                  </p>
+                )}
+              </div>
+              {(isOffline || isUsingFallback) && (
+                <button
+                  onClick={retryConnection}
+                  className="ml-2 px-3 py-1 text-xs bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+                >
+                  Réessayer
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">

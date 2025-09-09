@@ -10,9 +10,9 @@ import {
   Package
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { useAuth } from '../contexts/AuthContext';
-import { InventoryService } from '../services/inventoryService';
+import { InventoryServiceWithFallback } from './services/inventoryServiceWithFallback';
 import NewInventoryModal from '../components/modals/NewInventoryModal';
 import { Inventory as InventoryType, InventoryItem } from '../types';
 
@@ -23,8 +23,16 @@ const Inventory: React.FC = () => {
   const newInventoryModal = useModal();
   const { userData } = useAuth();
 
-  // Utiliser le hook useFirestore pour récupérer les inventaires en temps réel
-  const { data: inventories, loading: inventoriesLoading, error } = useFirestore<InventoryType>('inventories');
+  // Utiliser le hook avec fallback pour récupérer les inventaires
+  const { 
+    data: inventories, 
+    loading: inventoriesLoading, 
+    error, 
+    isOffline, 
+    isUsingFallback, 
+    loadingMessage,
+    retryConnection 
+  } = useFirestoreWithFallback<InventoryType>('inventories');
 
   const inventoryStatuses = [
     { value: 'all', label: 'Tous les inventaires' },
@@ -149,7 +157,7 @@ const Inventory: React.FC = () => {
     
     setLoading(true);
     try {
-      await InventoryService.createInventory({
+      await InventoryServiceWithFallback.createInventory({
         name: inventoryData.name,
         category: inventoryData.category,
         responsible: inventoryData.responsible,
@@ -180,21 +188,35 @@ const Inventory: React.FC = () => {
   if (inventoriesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#6B2C91' }}></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4" style={{ borderColor: '#6B2C91' }}></div>
+          <p className="text-lg font-medium" style={{ color: '#6B2C91' }}>
+            {loadingMessage}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Connexion à Firebase en cours...
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && inventories.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">Impossible de charger les inventaires</p>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={retryConnection}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -204,6 +226,31 @@ const Inventory: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Gestion des Inventaires
           </h1>
+          {/* 🚀 INDICATEUR DE STATUT AMÉLIORÉ */}
+          <div className="flex items-center mt-2 space-x-4">
+            <div className="flex items-center">
+              {isOffline ? (
+                <span className="text-sm text-red-600">Mode hors ligne</span>
+              ) : (
+                <span className="text-sm text-green-600">Connecté ({inventories.length} inventaires)</span>
+              )}
+            </div>
+            
+            {isUsingFallback && (
+              <div className="flex items-center">
+                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  Données locales ({inventories.length})
+                </span>
+                <button
+                  onClick={retryConnection}
+                  className="ml-2 p-1 hover:bg-gray-100 rounded"
+                  title="Réessayer la connexion"
+                >
+                  <RefreshCw className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            )}
+          </div>
           <p className="text-gray-600 mt-1">
             Planifiez et suivez vos inventaires physiques
           </p>
@@ -293,6 +340,33 @@ const Inventory: React.FC = () => {
       {/* Inventories List */}
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
+          {/* 🚀 MESSAGE D'ÉTAT AMÉLIORÉ */}
+          {error && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-blue-500 mr-2" />
+                <div className="flex-1">
+                  <p className="text-sm text-blue-800">
+                    {error} • {inventories.length} inventaires disponibles
+                  </p>
+                  {isUsingFallback && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ✅ Vous pouvez continuer à travailler • Synchronisation automatique en arrière-plan
+                    </p>
+                  )}
+                </div>
+                {(isOffline || isUsingFallback) && (
+                  <button
+                    onClick={retryConnection}
+                    className="ml-2 px-3 py-1 text-xs bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+                  >
+                    Réessayer
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
               Historique des Inventaires

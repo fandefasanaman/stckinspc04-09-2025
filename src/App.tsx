@@ -3,6 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ArticleServiceWithFallback } from './services/articleServiceWithFallback';
 import { MovementServiceWithFallback } from './services/movementServiceWithFallback';
+import { InventoryServiceWithFallback } from './services/inventoryServiceWithFallback';
+import { ReportServiceWithFallback } from './services/reportServiceWithFallback';
+import { UserServiceWithFallback } from './services/userServiceWithFallback';
+import { SettingsServiceWithFallback } from './services/settingsServiceWithFallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginForm from './components/LoginForm';
 import Sidebar from './components/Sidebar';
@@ -21,6 +25,17 @@ ArticleServiceWithFallback.startAutoSync();
 // Démarrer la synchronisation automatique des mouvements
 MovementServiceWithFallback.startAutoSync();
 
+// Démarrer la synchronisation automatique des inventaires
+InventoryServiceWithFallback.startAutoSync();
+
+// Démarrer la synchronisation automatique des rapports
+ReportServiceWithFallback.startAutoSync();
+
+// Démarrer la synchronisation automatique des utilisateurs
+UserServiceWithFallback.startAutoSync();
+
+// Démarrer la synchronisation automatique des paramètres
+SettingsServiceWithFallback.startAutoSync();
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
