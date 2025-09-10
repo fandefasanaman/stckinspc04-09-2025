@@ -73,6 +73,28 @@ export function useFirestoreWithFallback<T = DocumentData>(
           } as T));
           
           console.log(`✅ Données Firebase chargées pour ${collectionName}: ${documents.length} éléments`);
+          
+          // 🔍 DIAGNOSTIC SPÉCIAL pour articles et fournisseurs
+          if (collectionName === 'articles') {
+            console.log('🔍 === DIAGNOSTIC ARTICLES ===');
+            documents.forEach((article: any) => {
+              console.log(`📦 Article: ${article.code} - ${article.name}`);
+              console.log(`   Fournisseur: ${article.supplier || 'NON DÉFINI'}`);
+              console.log(`   ID Fournisseur: ${article.supplierId || 'NON DÉFINI'}`);
+            });
+            console.log('🔍 === FIN DIAGNOSTIC ARTICLES ===');
+          }
+          
+          if (collectionName === 'suppliers') {
+            console.log('🔍 === DIAGNOSTIC FOURNISSEURS ===');
+            documents.forEach((supplier: any) => {
+              console.log(`🏢 Fournisseur: ${supplier.id} - ${supplier.name}`);
+              console.log(`   Code: ${supplier.code}`);
+              console.log(`   Statut: ${supplier.status}`);
+            });
+            console.log('🔍 === FIN DIAGNOSTIC FOURNISSEURS ===');
+          }
+          
           setData(documents);
           setLoading(false);
           setError(null);

@@ -39,8 +39,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 45,
       minStock: 10,
       maxStock: 100,
-      supplier: 'SODIM ANDRAHARO',
-      supplierId: 'sup-sodim',
+      supplier: 'SODIM ANDRAHARO', // Nom exact du fournisseur
+      supplierId: 'sup-sodim', // ID exact du fournisseur
       description: 'Médicament RAM',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -55,8 +55,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 150,
       minStock: 20,
       maxStock: 200,
-      supplier: 'DISTRIMAD',
-      supplierId: 'sup-2',
+      supplier: 'DISTRIMAD', // Nom exact du fournisseur
+      supplierId: 'sup-distrimad', // ID exact du fournisseur
       description: 'Papier A4 standard',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -71,8 +71,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 25,
       minStock: 5,
       maxStock: 50,
-      supplier: 'SOCOBIS',
-      supplierId: 'sup-3',
+      supplier: 'SOCOBIS', // Nom exact du fournisseur
+      supplierId: 'sup-socobis', // ID exact du fournisseur
       description: 'Cartouches d\'encre HP',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -97,7 +97,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       updatedAt: '2024-01-01'
     },
     {
-      id: 'sup-2',
+      id: 'sup-distrimad',
       name: 'DISTRIMAD',
       code: 'DIST001',
       status: 'active',
@@ -110,7 +110,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       updatedAt: '2024-01-01'
     },
     {
-      id: 'sup-3',
+      id: 'sup-socobis',
       name: 'SOCOBIS',
       code: 'SOCO001',
       status: 'active',
@@ -123,7 +123,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       updatedAt: '2024-01-01'
     },
     {
-      id: 'sup-4',
+      id: 'sup-medical',
       name: 'MEDICAL SUPPLY MG',
       code: 'MESU001',
       status: 'active',
@@ -136,7 +136,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       updatedAt: '2024-01-01'
     },
     {
-      id: 'sup-5',
+      id: 'sup-bureau',
       name: 'BUREAU CENTER',
       code: 'BURE001',
       status: 'active',
@@ -213,44 +213,66 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     const selectedArticle = articles.find(a => a.id === articleId);
     
     if (selectedArticle) {
+      console.log('🔍 === DIAGNOSTIC LIAISON ARTICLE-FOURNISSEUR ===');
       console.log('🎯 Article sélectionné:', selectedArticle.name, '(', selectedArticle.code, ')');
-      console.log('🎯 Fournisseur de l\'article:', selectedArticle.supplier);
-      console.log('🎯 ID Fournisseur de l\'article:', selectedArticle.supplierId);
+      console.log('🎯 Fournisseur attendu:', selectedArticle.supplier);
+      console.log('🎯 ID Fournisseur attendu:', selectedArticle.supplierId);
+      console.log('🎯 Fournisseurs disponibles:', activeSuppliers.map(s => ({ id: s.id, name: s.name })));
       
       // 🚀 LOGIQUE DE SÉLECTION AUTOMATIQUE DU FOURNISSEUR
       let supplierIdToSet = '';
+      let matchMethod = '';
       
       // Méthode 1: Utiliser l'ID du fournisseur si disponible
       if (selectedArticle.supplierId) {
         const supplierExists = activeSuppliers.find(s => s.id === selectedArticle.supplierId);
         if (supplierExists) {
           supplierIdToSet = selectedArticle.supplierId;
-          console.log('✅ Fournisseur trouvé par ID:', supplierExists.name);
+          matchMethod = 'ID exact';
+          console.log('✅ Méthode 1 - Fournisseur trouvé par ID exact:', supplierExists.name);
+        } else {
+          console.log('❌ Méthode 1 - ID fournisseur non trouvé:', selectedArticle.supplierId);
         }
       }
       
       // Méthode 2: Chercher par nom si pas d'ID ou ID non trouvé
       if (!supplierIdToSet && selectedArticle.supplier) {
+        console.log('🔍 Méthode 2 - Recherche par nom exact:', selectedArticle.supplier);
         const foundSupplier = activeSuppliers.find(s => 
           s.name.toLowerCase().trim() === selectedArticle.supplier?.toLowerCase().trim()
         );
         if (foundSupplier) {
           supplierIdToSet = foundSupplier.id;
-          console.log('✅ Fournisseur trouvé par nom:', foundSupplier.name);
+          matchMethod = 'Nom exact';
+          console.log('✅ Méthode 2 - Fournisseur trouvé par nom exact:', foundSupplier.name);
+        } else {
+          console.log('❌ Méthode 2 - Nom fournisseur non trouvé:', selectedArticle.supplier);
         }
       }
       
       // Méthode 3: Chercher par correspondance partielle
       if (!supplierIdToSet && selectedArticle.supplier) {
+        console.log('🔍 Méthode 3 - Recherche par correspondance partielle:', selectedArticle.supplier);
         const foundSupplier = activeSuppliers.find(s => 
           s.name.toLowerCase().includes(selectedArticle.supplier?.toLowerCase() || '') ||
           (selectedArticle.supplier?.toLowerCase() || '').includes(s.name.toLowerCase())
         );
         if (foundSupplier) {
           supplierIdToSet = foundSupplier.id;
-          console.log('✅ Fournisseur trouvé par correspondance partielle:', foundSupplier.name);
+          matchMethod = 'Correspondance partielle';
+          console.log('✅ Méthode 3 - Fournisseur trouvé par correspondance partielle:', foundSupplier.name);
+        } else {
+          console.log('❌ Méthode 3 - Aucune correspondance partielle trouvée');
         }
       }
+      
+      // 🚀 DIAGNOSTIC FINAL DÉTAILLÉ
+      console.log('🔍 === RÉSULTAT FINAL ===');
+      console.log('- Fournisseur sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'AUCUN');
+      console.log('- ID sélectionné:', supplierIdToSet || 'AUCUN');
+      console.log('- Méthode de correspondance:', matchMethod || 'AUCUNE');
+      console.log('- Liaison réussie:', supplierIdToSet ? '✅ OUI' : '❌ NON');
+      console.log('🔍 === FIN DIAGNOSTIC ===');
       
       setFormData({ 
         ...formData, 
@@ -259,14 +281,13 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
         supplierId: supplierIdToSet // 🎯 FOURNISSEUR AUTOMATIQUE
       });
       
-      console.log('🎯 Fournisseur final sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'Aucun');
-      
       // 🚀 FEEDBACK VISUEL pour confirmer la sélection
       if (supplierIdToSet) {
         const selectedSupplierName = activeSuppliers.find(s => s.id === supplierIdToSet)?.name;
-        console.log(`✅ SUCCÈS: Article "${selectedArticle.name}" → Fournisseur "${selectedSupplierName}" sélectionné automatiquement`);
+        console.log(`✅ SUCCÈS FINAL: Article "${selectedArticle.name}" → Fournisseur "${selectedSupplierName}" sélectionné automatiquement via ${matchMethod}`);
       } else {
-        console.warn(`⚠️ ATTENTION: Aucun fournisseur trouvé pour l'article "${selectedArticle.name}"`);
+        console.error(`❌ ÉCHEC FINAL: Aucun fournisseur trouvé pour l'article "${selectedArticle.name}"`);
+        console.error('🔧 SOLUTION: Vérifiez que les IDs et noms correspondent exactement entre articles et fournisseurs');
       }
     } else {
       setFormData({ 
@@ -275,6 +296,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
         articleCode: '',
         supplierId: '' // Réinitialiser le fournisseur si pas d'article
       });
+      console.log('❌ Article non trouvé pour ID:', articleId);
     }
   };
 
@@ -309,16 +331,51 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
           <div className="p-6 overflow-y-auto flex-1">
           {/* 🚀 ZONE DE TEST POUR VÉRIFICATION */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">🧪 Zone de Test - Sélection Automatique</h3>
+            <h3 className="text-sm font-medium text-blue-800 mb-2">🔍 DIAGNOSTIC EN TEMPS RÉEL - Liaison Article-Fournisseur</h3>
             <div className="text-xs text-blue-700 space-y-1">
               <p><strong>Article sélectionné:</strong> {selectedArticle ? `${selectedArticle.code} - ${selectedArticle.name}` : 'Aucun'}</p>
               <p><strong>Fournisseur de l'article:</strong> {selectedArticle?.supplier || 'Non défini'}</p>
               <p><strong>ID Fournisseur:</strong> {selectedArticle?.supplierId || 'Non défini'}</p>
               <p><strong>Fournisseur auto-sélectionné:</strong> {selectedSupplier ? `${selectedSupplier.name} (${selectedSupplier.id})` : 'Aucun'}</p>
+              <p><strong>Fournisseurs disponibles:</strong> {activeSuppliers.length} ({activeSuppliers.map(s => s.name).join(', ')})</p>
               <p className={`font-medium ${selectedArticle && selectedSupplier ? 'text-green-700' : 'text-red-700'}`}>
-                {selectedArticle && selectedSupplier ? '✅ Liaison automatique réussie' : '❌ Pas de liaison automatique'}
+                {selectedArticle && selectedSupplier ? '✅ Liaison automatique RÉUSSIE' : '❌ ÉCHEC de liaison automatique'}
               </p>
+              {selectedArticle && !selectedSupplier && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                  <p className="text-red-700 font-medium">🚨 PROBLÈME DÉTECTÉ:</p>
+                  <p className="text-red-600 text-xs">
+                    L'article "{selectedArticle.name}" a le fournisseur "{selectedArticle.supplier}" 
+                    avec l'ID "{selectedArticle.supplierId}", mais ce fournisseur n'existe pas dans la liste.
+                  </p>
+                  <p className="text-red-600 text-xs mt-1">
+                    🔧 Vérifiez que l'ID "{selectedArticle.supplierId}" correspond à un fournisseur actif.
+                  </p>
+                </div>
+              )}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                console.log('🔍 === DIAGNOSTIC COMPLET LIAISON ===');
+                console.log('📊 Articles total:', articles.length);
+                console.log('🏢 Fournisseurs total:', activeSuppliers.length);
+                console.log('📦 Articles avec fournisseur défini:', articles.filter(a => a.supplier).length);
+                console.log('📦 Articles avec ID fournisseur défini:', articles.filter(a => a.supplierId).length);
+                
+                // Vérifier chaque liaison
+                articles.forEach(article => {
+                  if (article.supplier || article.supplierId) {
+                    const linkedSupplier = activeSuppliers.find(s => s.id === article.supplierId);
+                    console.log(`${linkedSupplier ? '✅' : '❌'} ${article.code}: ${article.supplier} → ${linkedSupplier ? linkedSupplier.name : 'NON TROUVÉ'}`);
+                  }
+                });
+                console.log('🔍 === FIN DIAGNOSTIC COMPLET ===');
+              }}
+              className="mt-2 px-3 py-1 text-xs bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+            >
+              🔍 Diagnostic Complet Console
+            </button>
           </div>
 
           {/* Informations de base */}
