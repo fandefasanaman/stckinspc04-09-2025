@@ -19,7 +19,6 @@ export class MovementServiceWithFallback {
   static async createStockEntry(entryData: {
     articleId: string;
     quantity: number;
-    supplier?: string;
     supplierId?: string;
     deliveryNote?: string;
     receivedDate?: string;
@@ -46,22 +45,6 @@ export class MovementServiceWithFallback {
       
       // Essayer d'abord Firebase avec transaction
       const movementId = await runTransaction(db, async (transaction) => {
-        // Gérer le fournisseur si fourni
-        let resolvedSupplierId: string | undefined;
-        let resolvedSupplierName: string | undefined;
-        
-        if (entryData.supplier && entryData.supplier.trim()) {
-          try {
-            const supplierResult = await SupplierServiceWithFallback.getOrCreateSupplierByName(entryData.supplier.trim());
-            resolvedSupplierId = supplierResult.id;
-            resolvedSupplierName = supplierResult.name;
-            console.log('✅ Fournisseur résolu:', resolvedSupplierName, 'ID:', resolvedSupplierId);
-          } catch (error) {
-            console.warn('⚠️ Erreur lors de la résolution du fournisseur, utilisation du nom fourni:', error);
-            resolvedSupplierName = entryData.supplier.trim();
-          }
-        }
-        
         // Récupérer l'article
         const articleRef = doc(db, this.articlesCollection, entryData.articleId);
         const articleDoc = await transaction.get(articleRef);
@@ -92,8 +75,8 @@ export class MovementServiceWithFallback {
           userId: entryData.userId,
           userName: entryData.userName,
           service: entryData.service,
-          supplierId: resolvedSupplierId || entryData.supplierId || null,
-          supplier: resolvedSupplierName || entryData.supplier || article.supplier || '',
+          supplierId: entryData.supplierId ?? null,
+          supplier: article.supplier || '',
           deliveryNote: entryData.deliveryNote ?? null,
           receivedDate: entryData.receivedDate ?? null,
           batchNumber: entryData.batchNumber ?? null,
@@ -114,8 +97,8 @@ export class MovementServiceWithFallback {
         const movementRef = doc(collection(db, this.movementsCollection));
         transaction.set(movementRef, movement);
 
-        // Mettre à jour le stock de l'article et le fournisseur
-        const articleUpdates: any = {
+        // Mettre à jour le stock de l'article
+        transaction.update(articleRef, {
           currentStock: newStock,
           status,
           batchNumber: entryData.batchNumber ?? null,
@@ -123,18 +106,7 @@ export class MovementServiceWithFallback {
           location: entryData.location ?? null,
           lastEntry: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        };
-        
-        // Mettre à jour le fournisseur de l'article si fourni
-        if (resolvedSupplierName) {
-          articleUpdates.supplier = resolvedSupplierName;
-          if (resolvedSupplierId) {
-            articleUpdates.supplierId = resolvedSupplierId;
-          }
-          console.log('🔗 Liaison fournisseur → article:', resolvedSupplierName);
-        }
-        
-        transaction.update(articleRef, articleUpdates);
+        });
 
         return movementRef.id;
       });

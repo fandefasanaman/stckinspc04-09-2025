@@ -3,6 +3,8 @@ import { X, ArrowUp, Save, Package, Calendar, MapPin, AlertCircle } from 'lucide
 import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
 import { Article } from '../../types';
 import LocationAutocomplete from '../LocationAutocomplete';
+import SupplierAutocomplete from '../SupplierAutocomplete';
+import SupplierAutocomplete from '../SupplierAutocomplete';
 import { LocationStorageService } from '../../services/locationStorageService';
 
 interface StockEntryModalProps {
@@ -21,6 +23,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     batchNumber: '',
     expiryDate: '',
     location: '',
+    supplier: '',
     qualityCheck: 'pending' as 'pending' | 'passed' | 'failed',
     qualityNotes: '',
     reference: '',
@@ -177,6 +180,20 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-5 h-5" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fournisseur (facultatif)
+              </label>
+              <SupplierAutocomplete
+                value={formData.supplier}
+                onChange={(value) => {
+                  setFormData({ ...formData, supplier: value });
+                }}
+                placeholder="Ex: PHARMADIS MADAGASCAR"
+                disabled={disabled}
+              />
+            </div>
+
           </button>
         </div>
 
@@ -244,6 +261,20 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                     </span>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fournisseur (facultatif)
+                </label>
+                <SupplierAutocomplete
+                  value={formData.supplier}
+                  onChange={(value) => {
+                    setFormData({ ...formData, supplier: value });
+                  }}
+                  placeholder="Ex: PHARMADIS MADAGASCAR"
+                  disabled={disabled}
+                />
               </div>
 
             </div>
@@ -432,6 +463,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 <p><strong>Stock actuel:</strong> {selectedArticle.currentStock} {selectedArticle.unit}(s)</p>
                 <p><strong>Nouveau stock:</strong> {selectedArticle.currentStock + parseInt(formData.quantity || '0')} {selectedArticle.unit}(s)</p>
                 {formData.location && <p><strong>Emplacement:</strong> {formData.location}</p>}
+                {formData.supplier && <p><strong>Fournisseur:</strong> {formData.supplier}</p>}
                 {formData.batchNumber && <p><strong>Lot:</strong> {formData.batchNumber}</p>}
                 {formData.expiryDate && <p><strong>Expiration:</strong> {new Date(formData.expiryDate).toLocaleDateString()}</p>}
               </div>

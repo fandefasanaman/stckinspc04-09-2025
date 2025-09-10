@@ -7,6 +7,7 @@ import { InventoryServiceWithFallback } from './services/inventoryServiceWithFal
 import { ReportServiceWithFallback } from './services/reportServiceWithFallback';
 import { UserServiceWithFallback } from './services/userServiceWithFallback';
 import { SettingsServiceWithFallback } from './services/settingsServiceWithFallback';
+import { SupplierServiceWithFallback } from './services/supplierServiceWithFallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginForm from './components/LoginForm';
 import Sidebar from './components/Sidebar';
@@ -37,6 +38,8 @@ UserServiceWithFallback.startAutoSync();
 // Démarrer la synchronisation automatique des paramètres
 SettingsServiceWithFallback.startAutoSync();
 
+// Démarrer la synchronisation automatique des fournisseurs
+SupplierServiceWithFallback.startAutoSync();
 
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();
