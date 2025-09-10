@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, Save, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
-import { Article, Supplier, StockLocation } from '../../types';
+import { Article } from '../../types';
 
 interface StockEntryModalProps {
   isOpen: boolean;
@@ -28,8 +28,24 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
 
   // Récupérer les articles depuis Firestore
   const { data: articles } = useFirestoreWithFallback<Article>('articles');
-  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers');
-  const { data: locations } = useFirestoreWithFallback<StockLocation>('locations');
+  
+  // Fournisseurs factices pour les tests
+  const suppliers = [
+    { id: 'sup-1', name: 'PHARMADIS MADAGASCAR', code: 'PHAR001', status: 'active', contact: { phone: '+261 20 22 123 45', email: 'contact@pharmadis.mg' } },
+    { id: 'sup-2', name: 'DISTRIMAD', code: 'DIST001', status: 'active', contact: { phone: '+261 20 22 234 56', email: 'info@distrimad.mg' } },
+    { id: 'sup-3', name: 'SOCOBIS', code: 'SOCO001', status: 'active', contact: { phone: '+261 20 22 345 67', email: 'commande@socobis.mg' } },
+    { id: 'sup-4', name: 'MEDICAL SUPPLY MG', code: 'MESU001', status: 'active', contact: { phone: '+261 20 22 456 78', email: 'vente@medicalsupply.mg' } },
+    { id: 'sup-5', name: 'BUREAU CENTER', code: 'BURE001', status: 'active', contact: { phone: '+261 20 22 567 89', email: 'contact@bureaucenter.mg' } }
+  ];
+  
+  // Emplacements factices pour les tests
+  const locations = [
+    { id: 'loc-1', name: 'Magasin Principal', code: 'MAG001', status: 'active', type: 'warehouse' },
+    { id: 'loc-2', name: 'Pharmacie - Armoire A', code: 'PHA001', status: 'active', type: 'cabinet' },
+    { id: 'loc-3', name: 'Bureau - Étagère 1', code: 'BUR001', status: 'active', type: 'shelf' },
+    { id: 'loc-4', name: 'Salle de Soins', code: 'SOI001', status: 'active', type: 'room' },
+    { id: 'loc-5', name: 'Réserve IT', code: 'RIT001', status: 'active', type: 'warehouse' }
+  ];
 
   // Filtrer les fournisseurs et emplacements actifs
   const activeSuppliers = suppliers.filter(s => s.status === 'active');
@@ -97,7 +113,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+        {/* Header - Fixe en haut */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
             <ArrowUp className="w-6 h-6 mr-3" style={{ color: '#00A86B' }} />
@@ -113,7 +130,9 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          {/* Contenu défilable */}
+          <div className="p-6 overflow-y-auto flex-1">
           {/* Informations de base */}
           <div className="mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -388,8 +407,10 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               </div>
             </div>
           )}
+          </div>
 
-          <div className="flex justify-end space-x-4 mt-8">
+          {/* Boutons d'action - Fixes en bas */}
+          <div className="flex justify-end space-x-4 p-6 border-t border-gray-200 bg-white">
             <button
               type="button"
               onClick={onClose}
