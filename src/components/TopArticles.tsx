@@ -28,7 +28,16 @@ const TopArticles: React.FC = () => {
 
   // Calculer les articles les plus sortis
   const calculateTopArticles = () => {
+    if (movements.length === 0 || articles.length === 0) {
+      return [];
+    }
+
     const exitMovements = movements.filter(m => m.type === 'exit' && m.status === 'validated');
+    
+    if (exitMovements.length === 0) {
+      return [];
+    }
+
     const articleExits: { [key: string]: number } = {};
 
     // Compter les sorties par article
@@ -118,7 +127,8 @@ const TopArticles: React.FC = () => {
           )) : (
             <div className="text-center text-gray-500 py-8">
               <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Aucune donnée disponible</p>
+              <p>Aucune sortie validée dans la base de données</p>
+              <p className="text-xs mt-1">Les articles les plus sortis apparaîtront après validation des mouvements</p>
             </div>
           )}
         </div>

@@ -1,11 +1,11 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, Clock, User } from 'lucide-react';
-import { useFirestore } from '../hooks/useFirestore';
+import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { Movement } from '../types';
 
 const RecentMovements: React.FC = () => {
   // Récupérer les mouvements récents depuis Firestore
-  const { data: allMovements } = useFirestore<Movement>('movements');
+  const { data: allMovements, loading, error } = useFirestoreWithFallback<Movement>('movements');
   
   // Limiter aux 5 mouvements les plus récents
   const movements = allMovements
@@ -44,7 +44,18 @@ const RecentMovements: React.FC = () => {
       </div>
       
       <div className="divide-y divide-gray-100">
-        {movements.length > 0 ? movements.map((movement) => (
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Chargement des mouvements...</p>
+          </div>
+        ) : error && movements.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <ArrowUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-sm">Erreur de chargement</p>
+            <p className="text-xs mt-1">{error}</p>
+          </div>
+        ) : movements.length > 0 ? movements.map((movement) => (
           <div key={movement.id} className="p-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-4">
               {/* Movement Type Icon */}
@@ -101,7 +112,8 @@ const RecentMovements: React.FC = () => {
         )) : (
           <div className="p-8 text-center text-gray-500">
             <ArrowUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>Aucun mouvement récent</p>
+            <p>Aucun mouvement dans la base de données</p>
+            <p className="text-xs mt-1">Les mouvements apparaîtront ici une fois créés</p>
           </div>
         )}
       </div>
