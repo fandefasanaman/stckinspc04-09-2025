@@ -11,9 +11,10 @@ import { db } from '../config/firebase';
 export function useFirestoreWithFallback<T = DocumentData>(
   collectionName: string, 
   queryConstraints: QueryConstraint[] = [],
-  fallbackData: T[] = []
+  fallbackData: T[] = [],
+  enhancedFallbackData?: T[]
 ) {
-  const [data, setData] = useState<T[]>(fallbackData);
+  const [data, setData] = useState<T[]>(enhancedFallbackData || fallbackData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -52,7 +53,7 @@ export function useFirestoreWithFallback<T = DocumentData>(
         setError('Connexion lente - utilisation des données en cache');
         setIsOffline(true);
         setIsUsingFallback(true);
-        setData(fallbackData);
+        setData(enhancedFallbackData || fallbackData);
         setLoading(false);
         setLoadingMessage('');
       }
@@ -87,8 +88,8 @@ export function useFirestoreWithFallback<T = DocumentData>(
           console.error(`Erreur Firestore pour ${collectionName}:`, err);
           
           // Utiliser les données de fallback en cas d'erreur
-          if (fallbackData.length > 0) {
-            setData(fallbackData);
+          if ((enhancedFallbackData || fallbackData).length > 0) {
+            setData(enhancedFallbackData || fallbackData);
             setIsUsingFallback(true);
             setError(`Erreur Firebase: ${err.message} - Données de fallback utilisées`);
           } else {
@@ -108,7 +109,7 @@ export function useFirestoreWithFallback<T = DocumentData>(
       clearInterval(progressInterval);
       unsubscribe();
     };
-  }, [collectionName, JSON.stringify(queryConstraints), JSON.stringify(fallbackData)]);
+  }, [collectionName, JSON.stringify(queryConstraints), JSON.stringify(fallbackData), JSON.stringify(enhancedFallbackData)]);
 
   const retryConnection = () => {
     setError(null);

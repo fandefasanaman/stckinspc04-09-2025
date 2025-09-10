@@ -28,18 +28,133 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     notes: ''
   });
 
-  // Récupérer les articles depuis Firestore
-  const { data: articles } = useFirestoreWithFallback<Article>('articles');
+  // 🎯 DONNÉES ENRICHIES POUR TEST - Articles avec fournisseurs liés
+  const enhancedArticlesFallback: Article[] = [
+    {
+      id: 'art-med001',
+      code: 'med0001',
+      name: 'ram',
+      category: 'Consommables Médicaux',
+      unit: 'unité',
+      currentStock: 45,
+      minStock: 10,
+      maxStock: 100,
+      supplier: 'SODIM ANDRAHARO',
+      supplierId: 'sup-sodim',
+      description: 'Médicament RAM',
+      status: 'normal',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z'
+    },
+    {
+      id: 'art-fb001',
+      code: 'FB001',
+      name: 'Papier A4 80g',
+      category: 'Fournitures Bureau',
+      unit: 'paquet',
+      currentStock: 150,
+      minStock: 20,
+      maxStock: 200,
+      supplier: 'DISTRIMAD',
+      supplierId: 'sup-2',
+      description: 'Papier A4 standard',
+      status: 'normal',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z'
+    },
+    {
+      id: 'art-it002',
+      code: 'IT002',
+      name: 'Cartouches HP 305',
+      category: 'Consommables IT',
+      unit: 'unité',
+      currentStock: 25,
+      minStock: 5,
+      maxStock: 50,
+      supplier: 'SOCOBIS',
+      supplierId: 'sup-3',
+      description: 'Cartouches d\'encre HP',
+      status: 'normal',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z'
+    }
+  ];
+
+  // 🎯 FOURNISSEURS ENRICHIS avec SODIM ANDRAHARO
+  const enhancedSuppliersFallback: Supplier[] = [
+    {
+      id: 'sup-sodim',
+      name: 'SODIM ANDRAHARO',
+      code: 'SODI001',
+      status: 'active',
+      contact: { 
+        phone: '+261 20 22 111 22', 
+        email: 'contact@sodim.mg',
+        address: 'Andraharo, Antananarivo'
+      },
+      categories: ['Consommables Médicaux'],
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01'
+    },
+    {
+      id: 'sup-2',
+      name: 'DISTRIMAD',
+      code: 'DIST001',
+      status: 'active',
+      contact: { 
+        phone: '+261 20 22 234 56', 
+        email: 'info@distrimad.mg' 
+      },
+      categories: ['Fournitures Bureau'],
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01'
+    },
+    {
+      id: 'sup-3',
+      name: 'SOCOBIS',
+      code: 'SOCO001',
+      status: 'active',
+      contact: { 
+        phone: '+261 20 22 345 67', 
+        email: 'commande@socobis.mg' 
+      },
+      categories: ['Consommables IT'],
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01'
+    },
+    {
+      id: 'sup-4',
+      name: 'MEDICAL SUPPLY MG',
+      code: 'MESU001',
+      status: 'active',
+      contact: { 
+        phone: '+261 20 22 456 78', 
+        email: 'vente@medicalsupply.mg' 
+      },
+      categories: ['Consommables Médicaux'],
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01'
+    },
+    {
+      id: 'sup-5',
+      name: 'BUREAU CENTER',
+      code: 'BURE001',
+      status: 'active',
+      contact: { 
+        phone: '+261 20 22 567 89', 
+        email: 'contact@bureaucenter.mg' 
+      },
+      categories: ['Fournitures Bureau'],
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01'
+    }
+  ];
+
+  // Récupérer les articles depuis Firestore avec données enrichies
+  const { data: articles } = useFirestoreWithFallback<Article>('articles', [], [], enhancedArticlesFallback);
   
-  // Récupérer les fournisseurs depuis Firestore avec fallback
-  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers', [], [
-    // Données de fallback pour les fournisseurs
-    { id: 'sup-1', name: 'PHARMADIS MADAGASCAR', code: 'PHAR001', status: 'active', contact: { phone: '+261 20 22 123 45', email: 'contact@pharmadis.mg' }, categories: ['Consommables Médicaux'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
-    { id: 'sup-2', name: 'DISTRIMAD', code: 'DIST001', status: 'active', contact: { phone: '+261 20 22 234 56', email: 'info@distrimad.mg' }, categories: ['Fournitures Bureau'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
-    { id: 'sup-3', name: 'SOCOBIS', code: 'SOCO001', status: 'active', contact: { phone: '+261 20 22 345 67', email: 'commande@socobis.mg' }, categories: ['Consommables IT'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
-    { id: 'sup-4', name: 'MEDICAL SUPPLY MG', code: 'MESU001', status: 'active', contact: { phone: '+261 20 22 456 78', email: 'vente@medicalsupply.mg' }, categories: ['Consommables Médicaux'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
-    { id: 'sup-5', name: 'BUREAU CENTER', code: 'BURE001', status: 'active', contact: { phone: '+261 20 22 567 89', email: 'contact@bureaucenter.mg' }, categories: ['Fournitures Bureau'], createdAt: '2024-01-01', updatedAt: '2024-01-01' }
-  ]);
+  // Récupérer les fournisseurs depuis Firestore avec données enrichies
+  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers', [], [], enhancedSuppliersFallback);
   
   // Filtrer les fournisseurs actifs
   const activeSuppliers = suppliers.filter(s => s.status === 'active');
@@ -93,22 +208,48 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     onClose();
   };
 
-  // 🚀 FOURNISSEUR INTELLIGENT - Gérer le changement d'article
+  // 🎯 CORRECTION 1: FOURNISSEUR AUTO-SÉLECTIONNÉ - Logique améliorée
   const handleArticleChange = (articleId: string) => {
     const selectedArticle = articles.find(a => a.id === articleId);
     
     if (selectedArticle) {
-      // Trouver le fournisseur de l'article s'il existe
+      console.log('🎯 Article sélectionné:', selectedArticle.name, '(', selectedArticle.code, ')');
+      console.log('🎯 Fournisseur de l\'article:', selectedArticle.supplier);
+      console.log('🎯 ID Fournisseur de l\'article:', selectedArticle.supplierId);
+      
+      // 🚀 LOGIQUE DE SÉLECTION AUTOMATIQUE DU FOURNISSEUR
       let supplierIdToSet = '';
+      
+      // Méthode 1: Utiliser l'ID du fournisseur si disponible
       if (selectedArticle.supplierId) {
-        // Utiliser l'ID du fournisseur de l'article
-        supplierIdToSet = selectedArticle.supplierId;
-      } else if (selectedArticle.supplier) {
-        // Chercher le fournisseur par nom si pas d'ID
+        const supplierExists = activeSuppliers.find(s => s.id === selectedArticle.supplierId);
+        if (supplierExists) {
+          supplierIdToSet = selectedArticle.supplierId;
+          console.log('✅ Fournisseur trouvé par ID:', supplierExists.name);
+        }
+      }
+      
+      // Méthode 2: Chercher par nom si pas d'ID ou ID non trouvé
+      if (!supplierIdToSet && selectedArticle.supplier) {
         const foundSupplier = activeSuppliers.find(s => 
-          s.name.toLowerCase() === selectedArticle.supplier?.toLowerCase()
+          s.name.toLowerCase().trim() === selectedArticle.supplier?.toLowerCase().trim()
         );
-        supplierIdToSet = foundSupplier?.id || '';
+        if (foundSupplier) {
+          supplierIdToSet = foundSupplier.id;
+          console.log('✅ Fournisseur trouvé par nom:', foundSupplier.name);
+        }
+      }
+      
+      // Méthode 3: Chercher par correspondance partielle
+      if (!supplierIdToSet && selectedArticle.supplier) {
+        const foundSupplier = activeSuppliers.find(s => 
+          s.name.toLowerCase().includes(selectedArticle.supplier?.toLowerCase() || '') ||
+          (selectedArticle.supplier?.toLowerCase() || '').includes(s.name.toLowerCase())
+        );
+        if (foundSupplier) {
+          supplierIdToSet = foundSupplier.id;
+          console.log('✅ Fournisseur trouvé par correspondance partielle:', foundSupplier.name);
+        }
       }
       
       setFormData({ 
@@ -118,8 +259,15 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
         supplierId: supplierIdToSet // 🎯 FOURNISSEUR AUTOMATIQUE
       });
       
-      console.log('🎯 Article sélectionné:', selectedArticle.name);
-      console.log('🎯 Fournisseur auto-sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'Aucun');
+      console.log('🎯 Fournisseur final sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'Aucun');
+      
+      // 🚀 FEEDBACK VISUEL pour confirmer la sélection
+      if (supplierIdToSet) {
+        const selectedSupplierName = activeSuppliers.find(s => s.id === supplierIdToSet)?.name;
+        console.log(`✅ SUCCÈS: Article "${selectedArticle.name}" → Fournisseur "${selectedSupplierName}" sélectionné automatiquement`);
+      } else {
+        console.warn(`⚠️ ATTENTION: Aucun fournisseur trouvé pour l'article "${selectedArticle.name}"`);
+      }
     } else {
       setFormData({ 
         ...formData, 
@@ -159,6 +307,20 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           {/* Contenu défilable */}
           <div className="p-6 overflow-y-auto flex-1">
+          {/* 🚀 ZONE DE TEST POUR VÉRIFICATION */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-800 mb-2">🧪 Zone de Test - Sélection Automatique</h3>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p><strong>Article sélectionné:</strong> {selectedArticle ? `${selectedArticle.code} - ${selectedArticle.name}` : 'Aucun'}</p>
+              <p><strong>Fournisseur de l'article:</strong> {selectedArticle?.supplier || 'Non défini'}</p>
+              <p><strong>ID Fournisseur:</strong> {selectedArticle?.supplierId || 'Non défini'}</p>
+              <p><strong>Fournisseur auto-sélectionné:</strong> {selectedSupplier ? `${selectedSupplier.name} (${selectedSupplier.id})` : 'Aucun'}</p>
+              <p className={`font-medium ${selectedArticle && selectedSupplier ? 'text-green-700' : 'text-red-700'}`}>
+                {selectedArticle && selectedSupplier ? '✅ Liaison automatique réussie' : '❌ Pas de liaison automatique'}
+              </p>
+            </div>
+          </div>
+
           {/* Informations de base */}
           <div className="mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -169,6 +331,9 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Article *
+                  <span className="ml-2 text-xs text-blue-600">
+                    (Testez avec "med0001 - ram" pour voir la sélection automatique)
+                  </span>
                 </label>
                 <select
                   required
@@ -180,7 +345,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                   <option value="">Sélectionner un article</option>
                   {articles.map(article => (
                     <option key={article.id} value={article.id}>
-                      {article.code} - {article.name}
+                      {article.code} - {article.name} (Stock: {article.currentStock})
                     </option>
                   ))}
                 </select>
@@ -212,16 +377,25 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Fournisseur *
-                  {selectedArticle?.supplier && (
-                    <span className="ml-2 text-xs text-green-600">
-                      (Auto-sélectionné depuis l'article)
+                  {selectedArticle?.supplier && selectedSupplier && (
+                    <span className="ml-2 text-xs font-medium text-green-600">
+                      ✅ Auto-sélectionné depuis l'article
+                    </span>
+                  )}
+                  {selectedArticle?.supplier && !selectedSupplier && (
+                    <span className="ml-2 text-xs font-medium text-red-600">
+                      ⚠️ Fournisseur "{selectedArticle.supplier}" non trouvé
                     </span>
                   )}
                 </label>
                 <select
                   required
                   value={formData.supplierId}
-                  onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, supplierId: e.target.value });
+                    const newSupplier = activeSuppliers.find(s => s.id === e.target.value);
+                    console.log('🔄 Fournisseur changé manuellement:', newSupplier?.name);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': '#00A86B' } as any}
                 >
@@ -286,13 +460,16 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Emplacement de stockage
                   <span className="ml-2 text-xs text-blue-600">
-                    (Saisie libre avec suggestions)
+                    🎯 (Autocomplete amélioré - tapez "ETAGERE" pour tester)
                   </span>
                 </label>
                 <LocationAutocomplete
                   value={formData.location}
-                  onChange={(value) => setFormData({ ...formData, location: value })}
-                  placeholder="Ex: Magasin A - Étagère 2, Pharmacie - Armoire B..."
+                  onChange={(value) => {
+                    setFormData({ ...formData, location: value });
+                    console.log('📍 Emplacement sélectionné:', value);
+                  }}
+                  placeholder="Ex: ETAGERE 2, Magasin A - Étagère 2, Pharmacie - Armoire B..."
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   💡 Tapez pour voir les suggestions ou créer un nouvel emplacement
