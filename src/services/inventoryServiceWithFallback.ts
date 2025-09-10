@@ -4,7 +4,12 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
-  runTransaction
+  runTransaction,
+  getDocs,
+  getDoc,
+  query,
+  where,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Inventory, InventoryItem } from '../types';
@@ -165,13 +170,74 @@ export class InventoryServiceWithFallback {
     }
   }
 
+  // Démarrer un inventaire avec fallback
+  static async startInventory(id: string, startedBy: string): Promise<void> {
+    try {
+      console.log('🚀 Tentative de démarrage Firebase pour inventaire:', id);
+      await this.updateInventory(id, {
+        status: 'in_progress',
+        startedAt: new Date().toISOString(),
+        startedBy
+      });
+      console.log('✅ Inventaire démarré avec succès dans Firebase:', id);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors du démarrage de l\'inventaire:', error);
+      
+      // Fallback: sauvegarder localement
+      const existingInventory = this.localInventories.get(id);
+      if (existingInventory) {
+        const updatedInventory = {
+          ...existingInventory,
+          status: 'in_progress' as const,
+          startedAt: new Date().toISOString(),
+          startedBy
+        };
+        this.localInventories.set(id, updatedInventory);
+      }
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('start', { id, startedBy });
+    }
+  }
+
+  // Terminer un inventaire avec fallback
+  static async completeInventory(id: string, completedBy: string): Promise<void> {
+    try {
+      console.log('🚀 Tentative de finalisation Firebase pour inventaire:', id);
+      await this.updateInventory(id, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        completedBy
+      });
+      console.log('✅ Inventaire finalisé avec succès dans Firebase:', id);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la finalisation de l\'inventaire:', error);
+      
+      // Fallback: sauvegarder localement
+      const existingInventory = this.localInventories.get(id);
+      if (existingInventory) {
+        const updatedInventory = {
+          ...existingInventory,
+          status: 'completed' as const,
+          completedAt: new Date().toISOString(),
+          completedBy
+        };
+        this.localInventories.set(id, updatedInventory);
+      }
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('complete', { id, completedBy });
+    }
+  }
+
   // Valider un inventaire avec fallback
   static async validateInventory(id: string, validatedBy: string): Promise<void> {
     try {
       console.log('🚀 Tentative de validation Firebase pour inventaire:', id);
       await this.updateInventory(id, {
         status: 'validated',
-        validatedAt: new Date().toISOString()
+        validatedAt: new Date().toISOString(),
+        validatedBy
       });
       console.log('✅ Inventaire validé avec succès dans Firebase:', id);
     } catch (error) {
@@ -183,13 +249,247 @@ export class InventoryServiceWithFallback {
         const updatedInventory = {
           ...existingInventory,
           status: 'validated' as const,
-          validatedAt: new Date().toISOString()
+          validatedAt: new Date().toISOString(),
+          validatedBy
         };
         this.localInventories.set(id, updatedInventory);
       }
       
       // Programmer une synchronisation ultérieure
       this.scheduleSync('validate', { id, validatedBy });
+    }
+  }
+
+  // Compter un article dans l'inventaire avec fallback
+  static async countInventoryItem(itemId: string, physicalStock: number, countedBy: string, notes?: string): Promise<void> {
+    const updateData = {
+      physicalStock,
+      difference: undefined as number | undefined,
+      status: 'counted' as const,
+      countedBy,
+      countedAt: new Date().toISOString(),
+      notes
+    };
+
+    try {
+      console.log('🚀 Tentative de comptage Firebase pour élément d\'inventaire:', itemId);
+      
+      // Calculer la différence en récupérant d'abord l'élément
+      const itemRef = doc(db, this.inventoryItemsCollection, itemId);
+      const itemDoc = await getDoc(itemRef);
+      
+      if (itemDoc.exists()) {
+        const item = itemDoc.data() as InventoryItem;
+        updateData.difference = physicalStock - item.theoreticalStock;
+      }
+      
+      await updateDoc(itemRef, updateData);
+      console.log('✅ Élément d\'inventaire compté avec succès dans Firebase:', itemId);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors du comptage de l\'élément d\'inventaire:', error);
+      
+      // Fallback: sauvegarder localement
+      const existingItem = this.localInventoryItems.get(itemId);
+      if (existingItem) {
+        updateData.difference = physicalStock - existingItem.theoreticalStock;
+        const updatedItem = { ...existingItem, ...updateData };
+        this.localInventoryItems.set(itemId, updatedItem);
+      }
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('countItem', { itemId, ...updateData });
+    }
+  }
+
+  // Générer les éléments d'inventaire à partir des articles avec fallback
+  static async generateInventoryItems(inventoryId: string, articleIds: string[]): Promise<void> {
+    try {
+      console.log('🚀 Tentative de génération Firebase pour éléments d\'inventaire:', inventoryId);
+      
+      // Récupérer les articles pour créer les éléments d'inventaire
+      const articlesPromises = articleIds.map(async (articleId) => {
+        const articleRef = doc(db, 'articles', articleId);
+        const articleDoc = await getDoc(articleRef);
+        return articleDoc.exists() ? { id: articleDoc.id, ...articleDoc.data() } : null;
+      });
+      
+      const articles = (await Promise.all(articlesPromises)).filter(Boolean);
+      
+      // Créer les éléments d'inventaire
+      const itemsPromises = articles.map(async (article: any) => {
+        const itemData: Omit<InventoryItem, 'id'> = {
+          inventoryId,
+          articleId: article.id,
+          articleCode: article.code,
+          articleName: article.name,
+          theoreticalStock: article.currentStock,
+          status: 'pending',
+          location: article.location
+        };
+        
+        return await addDoc(collection(db, this.inventoryItemsCollection), itemData);
+      });
+      
+      await Promise.all(itemsPromises);
+      
+      // Mettre à jour le nombre d'articles dans l'inventaire
+      await this.updateInventory(inventoryId, {
+        articlesCount: articles.length
+      });
+      
+      console.log('✅ Éléments d\'inventaire générés avec succès dans Firebase:', articles.length);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la génération des éléments d\'inventaire:', error);
+      
+      // Fallback: créer localement (version simplifiée)
+      articleIds.forEach((articleId, index) => {
+        const localItemId = `local-item-${inventoryId}-${index}-${Date.now()}`;
+        const itemData: InventoryItem = {
+          id: localItemId,
+          inventoryId,
+          articleId,
+          articleCode: `ART${index + 1}`,
+          articleName: `Article ${index + 1}`,
+          theoreticalStock: 0,
+          status: 'pending'
+        };
+        
+        this.localInventoryItems.set(localItemId, itemData);
+      });
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('generateItems', { inventoryId, articleIds });
+    }
+  }
+
+  // Calculer les statistiques d'un inventaire avec fallback
+  static async calculateInventoryStats(inventoryId: string): Promise<{
+    totalItems: number;
+    countedItems: number;
+    discrepancies: number;
+    totalDifference: number;
+  }> {
+    try {
+      console.log('🚀 Calcul des statistiques Firebase pour inventaire:', inventoryId);
+      const items = await this.getInventoryItems(inventoryId);
+      
+      const stats = {
+        totalItems: items.length,
+        countedItems: items.filter(item => item.status === 'counted' || item.status === 'validated').length,
+        discrepancies: items.filter(item => item.difference !== undefined && item.difference !== 0).length,
+        totalDifference: items.reduce((sum, item) => sum + (item.difference || 0), 0)
+      };
+      
+      console.log('✅ Statistiques calculées avec succès:', stats);
+      return stats;
+    } catch (error) {
+      console.error('❌ Erreur lors du calcul des statistiques d\'inventaire:', error);
+      
+      // Fallback: calculer avec les données locales
+      const localItems = Array.from(this.localInventoryItems.values())
+        .filter(item => item.inventoryId === inventoryId);
+      
+      return {
+        totalItems: localItems.length,
+        countedItems: localItems.filter(item => item.status === 'counted' || item.status === 'validated').length,
+        discrepancies: localItems.filter(item => item.difference !== undefined && item.difference !== 0).length,
+        totalDifference: localItems.reduce((sum, item) => sum + (item.difference || 0), 0)
+      };
+    }
+  }
+
+  // Obtenir les éléments d'un inventaire avec fallback
+  static async getInventoryItems(inventoryId: string): Promise<InventoryItem[]> {
+    try {
+      console.log('🚀 Tentative de récupération Firebase pour éléments d\'inventaire:', inventoryId);
+      const q = query(
+        collection(db, this.inventoryItemsCollection),
+        where('inventoryId', '==', inventoryId),
+        orderBy('articleCode', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const items = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as InventoryItem));
+      
+      console.log('✅ Éléments d\'inventaire récupérés avec succès de Firebase:', items.length);
+      return items;
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la récupération des éléments d\'inventaire:', error);
+      
+      // Fallback: retourner les éléments locaux pour cet inventaire
+      const localItems = Array.from(this.localInventoryItems.values())
+        .filter(item => item.inventoryId === inventoryId);
+      console.log('💾 Utilisation des éléments d\'inventaire locaux:', localItems.length);
+      return localItems;
+    }
+  }
+
+  // Appliquer les ajustements de stock après validation avec fallback
+  static async applyStockAdjustments(inventoryId: string, appliedBy: string): Promise<void> {
+    try {
+      console.log('🚀 Tentative d\'application des ajustements Firebase pour inventaire:', inventoryId);
+      
+      await runTransaction(db, async (transaction) => {
+        // Récupérer tous les éléments d'inventaire avec des différences
+        const itemsQuery = query(
+          collection(db, this.inventoryItemsCollection),
+          where('inventoryId', '==', inventoryId),
+          where('status', '==', 'counted')
+        );
+        const itemsSnapshot = await getDocs(itemsQuery);
+        
+        // Appliquer les ajustements pour chaque élément avec différence
+        itemsSnapshot.docs.forEach(itemDoc => {
+          const item = itemDoc.data() as InventoryItem;
+          
+          if (item.difference !== undefined && item.difference !== 0 && item.physicalStock !== undefined) {
+            // Mettre à jour le stock de l'article
+            const articleRef = doc(db, 'articles', item.articleId);
+            transaction.update(articleRef, {
+              currentStock: item.physicalStock,
+              lastEntry: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+            
+            // Marquer l'élément comme validé
+            transaction.update(itemDoc.ref, {
+              status: 'validated',
+              validatedAt: new Date().toISOString(),
+              validatedBy: appliedBy
+            });
+          }
+        });
+        
+        // Marquer l'inventaire comme validé
+        const inventoryRef = doc(db, this.inventoriesCollection, inventoryId);
+        transaction.update(inventoryRef, {
+          status: 'validated',
+          validatedAt: new Date().toISOString(),
+          validatedBy: appliedBy
+        });
+      });
+      
+      console.log('✅ Ajustements appliqués avec succès dans Firebase pour inventaire:', inventoryId);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de l\'application des ajustements:', error);
+      
+      // Fallback: marquer localement
+      const existingInventory = this.localInventories.get(inventoryId);
+      if (existingInventory) {
+        const updatedInventory = {
+          ...existingInventory,
+          status: 'validated' as const,
+          validatedAt: new Date().toISOString(),
+          validatedBy: appliedBy
+        };
+        this.localInventories.set(inventoryId, updatedInventory);
+      }
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('applyAdjustments', { inventoryId, appliedBy });
     }
   }
 
@@ -234,6 +534,20 @@ export class InventoryServiceWithFallback {
           case 'delete':
             await deleteDoc(doc(db, this.inventoriesCollection, op.data.id));
             break;
+          case 'start':
+            await updateDoc(doc(db, this.inventoriesCollection, op.data.id), {
+              status: 'in_progress',
+              startedAt: new Date().toISOString(),
+              startedBy: op.data.startedBy
+            });
+            break;
+          case 'complete':
+            await updateDoc(doc(db, this.inventoriesCollection, op.data.id), {
+              status: 'completed',
+              completedAt: new Date().toISOString(),
+              completedBy: op.data.completedBy
+            });
+            break;
           case 'createItem':
             await addDoc(collection(db, this.inventoryItemsCollection), op.data);
             break;
@@ -241,10 +555,21 @@ export class InventoryServiceWithFallback {
             const { id: itemUpdateId, ...itemUpdateData } = op.data;
             await updateDoc(doc(db, this.inventoryItemsCollection, itemUpdateId), itemUpdateData);
             break;
+          case 'countItem':
+            const { itemId: countItemId, ...countData } = op.data;
+            await updateDoc(doc(db, this.inventoryItemsCollection, countItemId), countData);
+            break;
+          case 'generateItems':
+            await this.generateInventoryItems(op.data.inventoryId, op.data.articleIds);
+            break;
+          case 'applyAdjustments':
+            await this.applyStockAdjustments(op.data.inventoryId, op.data.appliedBy);
+            break;
           case 'validate':
             await updateDoc(doc(db, this.inventoriesCollection, op.data.id), {
               status: 'validated',
-              validatedAt: new Date().toISOString()
+              validatedAt: new Date().toISOString(),
+              validatedBy: op.data.validatedBy
             });
             break;
         }

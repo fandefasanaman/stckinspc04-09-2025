@@ -76,8 +76,12 @@ export interface Inventory {
   description?: string;
   includeCategories: string[];
   createdAt: string;
+  startedAt?: string;
+  startedBy?: string;
   completedAt?: string;
+  completedBy?: string;
   validatedAt?: string;
+  validatedBy?: string;
 }
 
 export interface InventoryItem {
@@ -94,6 +98,8 @@ export interface InventoryItem {
   notes?: string;
   countedBy?: string;
   countedAt?: string;
+  validatedAt?: string;
+  validatedBy?: string;
 }
 
 export interface StockAlert {

@@ -37,8 +37,6 @@ UserServiceWithFallback.startAutoSync();
 // Démarrer la synchronisation automatique des paramètres
 SettingsServiceWithFallback.startAutoSync();
 
-// Démarrer la synchronisation automatique des inventaires
-InventoryServiceWithFallback.startAutoSync();
 
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();

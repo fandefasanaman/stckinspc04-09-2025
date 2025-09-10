@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { X, ClipboardList, Save, Calendar } from 'lucide-react';
+import { X, ClipboardList, Save, Calendar, User, Building } from 'lucide-react';
+import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
+import { Article, User as UserType } from '../../types';
 
 interface NewInventoryModalProps {
   isOpen: boolean;
@@ -17,21 +19,18 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
     includeCategories: [] as string[]
   });
 
-  const categories = [
-    'Général',
-    'Fournitures Bureau',
-    'Consommables IT',
-    'Consommables Médicaux',
-    'Produits Entretien',
-    'Équipements'
-  ];
+  // Récupérer les articles et utilisateurs depuis Firestore
+  const { data: articles } = useFirestoreWithFallback<Article>('articles');
+  const { data: users } = useFirestoreWithFallback<UserType>('users');
 
-  const responsibles = [
-    'Marie Kouassi',
-    'Dr. Aya Traoré',
-    'Jean Koffi',
-    'Paul Diabaté'
-  ];
+  // Extraire les catégories uniques des articles
+  const categories = ['Général', ...Array.from(new Set(articles.map(a => a.category)))];
+  
+  // Filtrer les utilisateurs qui peuvent être responsables d'inventaire
+  const responsibles = users.filter(u => 
+    u.status === 'active' && 
+    ['admin', 'manager', 'supervisor'].includes(u.role)
+  );
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     if (checked) {
@@ -49,15 +48,20 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (formData.includeCategories.length === 0 && formData.category !== 'Général') {
+      alert('Veuillez sélectionner au moins une catégorie à inclure');
+      return;
+    }
+    
     onSave({
       ...formData,
-      id: Date.now(),
       status: 'planned',
-      createdDate: new Date().toISOString().split('T')[0],
       articlesCount: 0,
-      discrepancies: 0,
-      adjustmentValue: 0
+      discrepancies: 0
     });
+    
     setFormData({
       name: '',
       category: '',
@@ -138,12 +142,17 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
                 style={{ '--tw-ring-color': '#6B2C91' } as any}
               >
                 <option value="">Sélectionner un responsable</option>
-                {responsibles.map(responsible => (
-                  <option key={responsible} value={responsible}>
-                    {responsible}
+                {responsibles.map(user => (
+                  <option key={user.id} value={user.name}>
+                    {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'manager' ? 'Gestionnaire' : 'Responsable'})
                   </option>
                 ))}
               </select>
+              {responsibles.length === 0 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Aucun responsable disponible - Vérifiez les utilisateurs actifs
+                </p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -165,6 +174,11 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Catégories à inclure
               </label>
+              {formData.category === 'Général' ? (
+                <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                  L'inventaire général inclura automatiquement toutes les catégories d'articles disponibles.
+                </p>
+              ) : (
               <div className="grid grid-cols-2 gap-2">
                 {categories.slice(1).map(category => (
                   <label key={category} className="flex items-center">
@@ -179,6 +193,12 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
                   </label>
                 ))}
               </div>
+              )}
+              {formData.category !== 'Général' && formData.includeCategories.length === 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  Veuillez sélectionner au moins une catégorie
+                </p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -195,6 +215,28 @@ const NewInventoryModal: React.FC<NewInventoryModalProps> = ({ isOpen, onClose, 
               />
             </div>
           </div>
+
+          {/* Aperçu des articles qui seront inclus */}
+          {(formData.category === 'Général' || formData.includeCategories.length > 0) && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">Aperçu de l'inventaire</h4>
+              <div className="text-sm text-blue-700">
+                {formData.category === 'Général' ? (
+                  <p><strong>Articles inclus:</strong> Tous les articles ({articles.length} articles)</p>
+                ) : (
+                  <p><strong>Articles inclus:</strong> {
+                    articles.filter(article => 
+                      formData.includeCategories.some(cat => 
+                        article.category.toLowerCase().includes(cat.toLowerCase())
+                      )
+                    ).length
+                  } articles des catégories sélectionnées</p>
+                )}
+                <p><strong>Responsable:</strong> {formData.responsible}</p>
+                <p><strong>Date prévue:</strong> {formData.scheduledDate ? new Date(formData.scheduledDate).toLocaleDateString() : 'Non définie'}</p>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-4 mt-8">
             <button
