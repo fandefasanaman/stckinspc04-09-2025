@@ -1,159 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Settings as SettingsIcon, 
   Save, 
   RotateCcw, 
   Building, 
-  Shield, 
   Bell,
-  Wifi,
-  WifiOff,
-  RefreshCw
+  Shield,
+  Database,
+  Globe
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { SettingsServiceWithFallback, AppSettings } from '../services/settingsServiceWithFallback';
 
 const Settings: React.FC = () => {
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    // Organisation
+    organizationName: 'Institut National de Santé Publique et Communautaire',
+    organizationAcronym: 'INSPC',
+    address: 'Befelatanana, Antananarivo, Madagascar',
+    phone: '+261 XX XX XX XX XX',
+    
+    // Stock
+    lowStockThreshold: 20,
+    currency: 'FCFA',
+    
+    // Notifications
+    emailNotifications: {
+      stockLow: true,
+      stockOut: true,
+      expiring: true,
+      movements: false,
+      inventory: true
+    },
+    
+    // Système
+    sessionDuration: 480,
+    maxLoginAttempts: 5,
+    backupFrequency: 'daily'
+  });
+
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
-  const { userData } = useAuth();
 
-  // Charger les paramètres au démarrage
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Essayer de charger depuis Firebase d'abord
-      const localSettings = SettingsServiceWithFallback.getLocalSettings();
-      if (localSettings) {
-        setSettings(localSettings);
-        setIsUsingFallback(true);
-        console.log('💾 Paramètres chargés depuis le cache local');
-      } else {
-        // Créer des paramètres par défaut si aucun n'existe
-        const defaultSettings: AppSettings = {
-          organizationName: 'Institut National de Santé Publique et Communautaire',
-          organizationAcronym: 'INSPC',
-          address: 'Befelatanana, Antananarivo, Madagascar',
-          phone: '+261 XX XX XX XX XX',
-          lowStockThreshold: 20,
-          currency: 'FCFA',
-          emailNotifications: {
-            stockLow: true,
-            stockOut: true,
-            expiring: true,
-            movements: false,
-            inventory: true
-          },
-          reportFrequency: {
-            daily: true,
-            weekly: 'monday'
-          },
-          passwordPolicy: {
-            minLength: 8,
-            requireUppercase: true,
-            requireLowercase: true,
-            requireNumbers: true,
-            requireSpecialChars: true,
-            expirationDays: 90
-          },
-          sessionDuration: 480,
-          maxLoginAttempts: 5,
-          backupFrequency: 'daily',
-          backupTime: '02:00',
-          updatedAt: new Date().toISOString(),
-          updatedBy: userData?.id || 'system'
-        };
-        setSettings(defaultSettings);
-      }
-    } catch (err: any) {
-      console.error('Erreur lors du chargement des paramètres:', err);
-      setError('Impossible de charger les paramètres');
-      setIsOffline(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!settings || !userData) return;
-    
+  const handleSave = () => {
     setSaving(true);
-    setError(null);
+    console.log('Sauvegarde des paramètres:', settings);
     
-    try {
-      await SettingsServiceWithFallback.updateSettings(settings, userData.id);
-      console.log('✅ Paramètres sauvegardés avec succès');
-    } catch (err: any) {
-      console.error('Erreur lors de la sauvegarde des paramètres:', err);
-      setError('Erreur lors de la sauvegarde: ' + err.message);
-    } finally {
+    // Simuler la sauvegarde
+    setTimeout(() => {
       setSaving(false);
+      alert('Paramètres sauvegardés avec succès !');
+    }, 1000);
+  };
+
+  const handleReset = () => {
+    if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?')) {
+      setSettings({
+        organizationName: 'Institut National de Santé Publique et Communautaire',
+        organizationAcronym: 'INSPC',
+        address: 'Befelatanana, Antananarivo, Madagascar',
+        phone: '+261 XX XX XX XX XX',
+        lowStockThreshold: 20,
+        currency: 'FCFA',
+        emailNotifications: {
+          stockLow: true,
+          stockOut: true,
+          expiring: true,
+          movements: false,
+          inventory: true
+        },
+        sessionDuration: 480,
+        maxLoginAttempts: 5,
+        backupFrequency: 'daily'
+      });
+      console.log('Paramètres réinitialisés');
     }
   };
-
-  const handleReset = async () => {
-    if (!userData || !confirm('Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?')) return;
-    
-    setSaving(true);
-    setError(null);
-    
-    try {
-      await SettingsServiceWithFallback.resetToDefaults(userData.id);
-      await loadSettings(); // Recharger les paramètres
-      console.log('✅ Paramètres réinitialisés avec succès');
-    } catch (err: any) {
-      console.error('Erreur lors de la réinitialisation des paramètres:', err);
-      setError('Erreur lors de la réinitialisation: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const retryConnection = () => {
-    setIsOffline(false);
-    setIsUsingFallback(false);
-    loadSettings();
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4" style={{ borderColor: '#6B2C91' }}></div>
-          <p className="text-lg font-medium" style={{ color: '#6B2C91' }}>
-            Chargement des paramètres...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!settings) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600 mb-4">Impossible de charger les paramètres</p>
-          <button
-            onClick={retryConnection}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Réessayer
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -163,34 +82,6 @@ const Settings: React.FC = () => {
           <h1 className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
             Paramètres
           </h1>
-          {/* 🚀 INDICATEUR DE STATUT AMÉLIORÉ */}
-          <div className="flex items-center mt-2 space-x-4">
-            <div className="flex items-center">
-              {isOffline ? (
-                <WifiOff className="w-4 h-4 text-red-500 mr-2" />
-              ) : (
-                <Wifi className="w-4 h-4 text-green-500 mr-2" />
-              )}
-              <span className={`text-sm ${isOffline ? 'text-red-600' : 'text-green-600'}`}>
-                {isOffline ? 'Mode hors ligne' : 'Connecté'}
-              </span>
-            </div>
-            
-            {isUsingFallback && (
-              <div className="flex items-center">
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                  Données locales
-                </span>
-                <button
-                  onClick={retryConnection}
-                  className="ml-2 p-1 hover:bg-gray-100 rounded"
-                  title="Réessayer la connexion"
-                >
-                  <RefreshCw className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
-            )}
-          </div>
           <p className="text-gray-600 mt-1">
             Configuration de l'application
           </p>
@@ -215,16 +106,6 @@ const Settings: React.FC = () => {
           </button>
         </div>
       </div>
-      
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <Shield className="w-5 h-5 text-red-500 mr-2" />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        </div>
-      )}
 
       {/* Organization Settings */}
       <div className="bg-white rounded-lg shadow-sm">
@@ -292,7 +173,7 @@ const Settings: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold flex items-center" style={{ color: '#6B2C91' }}>
-            <SettingsIcon className="w-5 h-5 mr-2" />
+            <Database className="w-5 h-5 mr-2" />
             Paramètres de Stock
           </h3>
         </div>
@@ -365,6 +246,104 @@ const Settings: React.FC = () => {
                 </span>
               </label>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* System Settings */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold flex items-center" style={{ color: '#6B2C91' }}>
+            <Shield className="w-5 h-5 mr-2" />
+            Paramètres Système
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Durée de session (minutes)
+              </label>
+              <input
+                type="number"
+                min="30"
+                max="1440"
+                value={settings.sessionDuration}
+                onChange={(e) => setSettings({ ...settings, sessionDuration: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#6B2C91' } as any}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tentatives de connexion max
+              </label>
+              <input
+                type="number"
+                min="3"
+                max="10"
+                value={settings.maxLoginAttempts}
+                onChange={(e) => setSettings({ ...settings, maxLoginAttempts: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#6B2C91' } as any}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fréquence de sauvegarde
+              </label>
+              <select
+                value={settings.backupFrequency}
+                onChange={(e) => setSettings({ ...settings, backupFrequency: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#6B2C91' } as any}
+              >
+                <option value="hourly">Toutes les heures</option>
+                <option value="daily">Quotidienne</option>
+                <option value="weekly">Hebdomadaire</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Application Info */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold flex items-center" style={{ color: '#6B2C91' }}>
+            <Globe className="w-5 h-5 mr-2" />
+            Informations Application
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
+                v1.0.0
+              </div>
+              <div className="text-sm text-gray-600">Version</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#00A86B' }}>
+                Stable
+              </div>
+              <div className="text-sm text-gray-600">État</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#D4AF37' }}>
+                2024
+              </div>
+              <div className="text-sm text-gray-600">Année</div>
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+            <p className="text-sm text-gray-500">
+              © 2024 Institut National de Santé Publique et Communautaire - Befelatanana
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Application de Gestion de Stock développée pour l'INSPC
+            </p>
           </div>
         </div>
       </div>

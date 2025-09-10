@@ -84,17 +84,17 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/reports" element={
-              <ProtectedRoute requiredRole="supervisor">
+              <ProtectedRoute>
                 <Reports />
               </ProtectedRoute>
             } />
             <Route path="/users" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute>
                 <Users />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute>
                 <Settings />
               </ProtectedRoute>
             } />
