@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, Save, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
-import { Article, Supplier } from '../../types';
+import { Article } from '../../types';
 import LocationAutocomplete from '../LocationAutocomplete';
 import { LocationStorageService } from '../../services/locationStorageService';
 
@@ -16,7 +16,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     articleCode: '',
     articleId: '',
     quantity: '',
-    supplierId: '',
     deliveryNote: '',
     receivedDate: new Date().toISOString().split('T')[0],
     batchNumber: '',
@@ -39,8 +38,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 45,
       minStock: 10,
       maxStock: 100,
-      supplier: 'SODIM ANDRAHARO', // Nom exact du fournisseur
-      supplierId: 'sup-sodim', // ID exact du fournisseur
+      supplier: 'SODIM ANDRAHARO',
+      supplierId: 'sup-sodim',
       description: 'Médicament RAM',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -55,8 +54,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 150,
       minStock: 20,
       maxStock: 200,
-      supplier: 'DISTRIMAD', // Nom exact du fournisseur
-      supplierId: 'sup-distrimad', // ID exact du fournisseur
+      supplier: 'DISTRIMAD',
+      supplierId: 'sup-2',
       description: 'Papier A4 standard',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -71,8 +70,8 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       currentStock: 25,
       minStock: 5,
       maxStock: 50,
-      supplier: 'SOCOBIS', // Nom exact du fournisseur
-      supplierId: 'sup-socobis', // ID exact du fournisseur
+      supplier: 'SOCOBIS',
+      supplierId: 'sup-3',
       description: 'Cartouches d\'encre HP',
       status: 'normal',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -80,90 +79,14 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     }
   ];
 
-  // 🎯 FOURNISSEURS ENRICHIS avec SODIM ANDRAHARO
-  const enhancedSuppliersFallback: Supplier[] = [
-    {
-      id: 'sup-sodim',
-      name: 'SODIM ANDRAHARO',
-      code: 'SODI001',
-      status: 'active',
-      contact: { 
-        phone: '+261 20 22 111 22', 
-        email: 'contact@sodim.mg',
-        address: 'Andraharo, Antananarivo'
-      },
-      categories: ['Consommables Médicaux'],
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 'sup-distrimad',
-      name: 'DISTRIMAD',
-      code: 'DIST001',
-      status: 'active',
-      contact: { 
-        phone: '+261 20 22 234 56', 
-        email: 'info@distrimad.mg' 
-      },
-      categories: ['Fournitures Bureau'],
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 'sup-socobis',
-      name: 'SOCOBIS',
-      code: 'SOCO001',
-      status: 'active',
-      contact: { 
-        phone: '+261 20 22 345 67', 
-        email: 'commande@socobis.mg' 
-      },
-      categories: ['Consommables IT'],
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 'sup-medical',
-      name: 'MEDICAL SUPPLY MG',
-      code: 'MESU001',
-      status: 'active',
-      contact: { 
-        phone: '+261 20 22 456 78', 
-        email: 'vente@medicalsupply.mg' 
-      },
-      categories: ['Consommables Médicaux'],
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 'sup-bureau',
-      name: 'BUREAU CENTER',
-      code: 'BURE001',
-      status: 'active',
-      contact: { 
-        phone: '+261 20 22 567 89', 
-        email: 'contact@bureaucenter.mg' 
-      },
-      categories: ['Fournitures Bureau'],
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    }
-  ];
-
   // Récupérer les articles depuis Firestore avec données enrichies
   const { data: articles } = useFirestoreWithFallback<Article>('articles', [], [], enhancedArticlesFallback);
   
-  // Récupérer les fournisseurs depuis Firestore avec données enrichies
-  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers', [], [], enhancedSuppliersFallback);
-  
-  // Filtrer les fournisseurs actifs
-  const activeSuppliers = suppliers.filter(s => s.status === 'active');
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation des champs obligatoires
-    if (!formData.articleId || !formData.quantity || !formData.supplierId) {
+    if (!formData.articleId || !formData.quantity) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -186,15 +109,13 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       user: 'Utilisateur Actuel',
-      status: 'pending',
-      supplier: activeSuppliers.find(s => s.id === formData.supplierId)?.name || ''
+      status: 'pending'
     });
     
     setFormData({
       articleCode: '',
       articleId: '',
       quantity: '',
-      supplierId: '',
       deliveryNote: '',
       receivedDate: new Date().toISOString().split('T')[0],
       batchNumber: '',
@@ -208,102 +129,27 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     onClose();
   };
 
-  // 🎯 CORRECTION 1: FOURNISSEUR AUTO-SÉLECTIONNÉ - Logique améliorée
   const handleArticleChange = (articleId: string) => {
     const selectedArticle = articles.find(a => a.id === articleId);
     
     if (selectedArticle) {
-      console.log('🔍 === DIAGNOSTIC LIAISON ARTICLE-FOURNISSEUR ===');
-      console.log('🎯 Article sélectionné:', selectedArticle.name, '(', selectedArticle.code, ')');
-      console.log('🎯 Fournisseur attendu:', selectedArticle.supplier);
-      console.log('🎯 ID Fournisseur attendu:', selectedArticle.supplierId);
-      console.log('🎯 Fournisseurs disponibles:', activeSuppliers.map(s => ({ id: s.id, name: s.name })));
-      
-      // 🚀 LOGIQUE DE SÉLECTION AUTOMATIQUE DU FOURNISSEUR
-      let supplierIdToSet = '';
-      let matchMethod = '';
-      
-      // Méthode 1: Utiliser l'ID du fournisseur si disponible
-      if (selectedArticle.supplierId) {
-        const supplierExists = activeSuppliers.find(s => s.id === selectedArticle.supplierId);
-        if (supplierExists) {
-          supplierIdToSet = selectedArticle.supplierId;
-          matchMethod = 'ID exact';
-          console.log('✅ Méthode 1 - Fournisseur trouvé par ID exact:', supplierExists.name);
-        } else {
-          console.log('❌ Méthode 1 - ID fournisseur non trouvé:', selectedArticle.supplierId);
-        }
-      }
-      
-      // Méthode 2: Chercher par nom si pas d'ID ou ID non trouvé
-      if (!supplierIdToSet && selectedArticle.supplier) {
-        console.log('🔍 Méthode 2 - Recherche par nom exact:', selectedArticle.supplier);
-        const foundSupplier = activeSuppliers.find(s => 
-          s.name.toLowerCase().trim() === selectedArticle.supplier?.toLowerCase().trim()
-        );
-        if (foundSupplier) {
-          supplierIdToSet = foundSupplier.id;
-          matchMethod = 'Nom exact';
-          console.log('✅ Méthode 2 - Fournisseur trouvé par nom exact:', foundSupplier.name);
-        } else {
-          console.log('❌ Méthode 2 - Nom fournisseur non trouvé:', selectedArticle.supplier);
-        }
-      }
-      
-      // Méthode 3: Chercher par correspondance partielle
-      if (!supplierIdToSet && selectedArticle.supplier) {
-        console.log('🔍 Méthode 3 - Recherche par correspondance partielle:', selectedArticle.supplier);
-        const foundSupplier = activeSuppliers.find(s => 
-          s.name.toLowerCase().includes(selectedArticle.supplier?.toLowerCase() || '') ||
-          (selectedArticle.supplier?.toLowerCase() || '').includes(s.name.toLowerCase())
-        );
-        if (foundSupplier) {
-          supplierIdToSet = foundSupplier.id;
-          matchMethod = 'Correspondance partielle';
-          console.log('✅ Méthode 3 - Fournisseur trouvé par correspondance partielle:', foundSupplier.name);
-        } else {
-          console.log('❌ Méthode 3 - Aucune correspondance partielle trouvée');
-        }
-      }
-      
-      // 🚀 DIAGNOSTIC FINAL DÉTAILLÉ
-      console.log('🔍 === RÉSULTAT FINAL ===');
-      console.log('- Fournisseur sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'AUCUN');
-      console.log('- ID sélectionné:', supplierIdToSet || 'AUCUN');
-      console.log('- Méthode de correspondance:', matchMethod || 'AUCUNE');
-      console.log('- Liaison réussie:', supplierIdToSet ? '✅ OUI' : '❌ NON');
-      console.log('🔍 === FIN DIAGNOSTIC ===');
-      
       setFormData({ 
         ...formData, 
         articleId,
-        articleCode: selectedArticle.code,
-        supplierId: supplierIdToSet // 🎯 FOURNISSEUR AUTOMATIQUE
+        articleCode: selectedArticle.code
       });
-      
-      // 🚀 FEEDBACK VISUEL pour confirmer la sélection
-      if (supplierIdToSet) {
-        const selectedSupplierName = activeSuppliers.find(s => s.id === supplierIdToSet)?.name;
-        console.log(`✅ SUCCÈS FINAL: Article "${selectedArticle.name}" → Fournisseur "${selectedSupplierName}" sélectionné automatiquement via ${matchMethod}`);
-      } else {
-        console.error(`❌ ÉCHEC FINAL: Aucun fournisseur trouvé pour l'article "${selectedArticle.name}"`);
-        console.error('🔧 SOLUTION: Vérifiez que les IDs et noms correspondent exactement entre articles et fournisseurs');
-      }
     } else {
       setFormData({ 
         ...formData, 
         articleId,
-        articleCode: '',
-        supplierId: '' // Réinitialiser le fournisseur si pas d'article
+        articleCode: ''
       });
-      console.log('❌ Article non trouvé pour ID:', articleId);
     }
   };
 
   if (!isOpen) return null;
 
   const selectedArticle = articles.find(a => a.id === formData.articleId);
-  const selectedSupplier = activeSuppliers.find(s => s.id === formData.supplierId);
   const isMedicalCategory = selectedArticle?.category.toLowerCase().includes('médical') || 
                            selectedArticle?.category.toLowerCase().includes('medical');
 
@@ -331,51 +177,15 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
           <div className="p-6 overflow-y-auto flex-1">
           {/* 🚀 ZONE DE TEST POUR VÉRIFICATION */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">🔍 DIAGNOSTIC EN TEMPS RÉEL - Liaison Article-Fournisseur</h3>
+            <h3 className="text-sm font-medium text-blue-800 mb-2">🧪 Zone de Test - Article Sélectionné</h3>
             <div className="text-xs text-blue-700 space-y-1">
               <p><strong>Article sélectionné:</strong> {selectedArticle ? `${selectedArticle.code} - ${selectedArticle.name}` : 'Aucun'}</p>
-              <p><strong>Fournisseur de l'article:</strong> {selectedArticle?.supplier || 'Non défini'}</p>
-              <p><strong>ID Fournisseur:</strong> {selectedArticle?.supplierId || 'Non défini'}</p>
-              <p><strong>Fournisseur auto-sélectionné:</strong> {selectedSupplier ? `${selectedSupplier.name} (${selectedSupplier.id})` : 'Aucun'}</p>
-              <p><strong>Fournisseurs disponibles:</strong> {activeSuppliers.length} ({activeSuppliers.map(s => s.name).join(', ')})</p>
-              <p className={`font-medium ${selectedArticle && selectedSupplier ? 'text-green-700' : 'text-red-700'}`}>
-                {selectedArticle && selectedSupplier ? '✅ Liaison automatique RÉUSSIE' : '❌ ÉCHEC de liaison automatique'}
+              <p><strong>Catégorie:</strong> {selectedArticle?.category || 'Non définie'}</p>
+              <p><strong>Stock actuel:</strong> {selectedArticle?.currentStock || 0} {selectedArticle?.unit || 'unités'}</p>
+              <p className={`font-medium ${selectedArticle ? 'text-green-700' : 'text-red-700'}`}>
+                {selectedArticle ? '✅ Article sélectionné' : '❌ Aucun article sélectionné'}
               </p>
-              {selectedArticle && !selectedSupplier && (
-                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                  <p className="text-red-700 font-medium">🚨 PROBLÈME DÉTECTÉ:</p>
-                  <p className="text-red-600 text-xs">
-                    L'article "{selectedArticle.name}" a le fournisseur "{selectedArticle.supplier}" 
-                    avec l'ID "{selectedArticle.supplierId}", mais ce fournisseur n'existe pas dans la liste.
-                  </p>
-                  <p className="text-red-600 text-xs mt-1">
-                    🔧 Vérifiez que l'ID "{selectedArticle.supplierId}" correspond à un fournisseur actif.
-                  </p>
-                </div>
-              )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🔍 === DIAGNOSTIC COMPLET LIAISON ===');
-                console.log('📊 Articles total:', articles.length);
-                console.log('🏢 Fournisseurs total:', activeSuppliers.length);
-                console.log('📦 Articles avec fournisseur défini:', articles.filter(a => a.supplier).length);
-                console.log('📦 Articles avec ID fournisseur défini:', articles.filter(a => a.supplierId).length);
-                
-                // Vérifier chaque liaison
-                articles.forEach(article => {
-                  if (article.supplier || article.supplierId) {
-                    const linkedSupplier = activeSuppliers.find(s => s.id === article.supplierId);
-                    console.log(`${linkedSupplier ? '✅' : '❌'} ${article.code}: ${article.supplier} → ${linkedSupplier ? linkedSupplier.name : 'NON TROUVÉ'}`);
-                  }
-                });
-                console.log('🔍 === FIN DIAGNOSTIC COMPLET ===');
-              }}
-              className="mt-2 px-3 py-1 text-xs bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
-            >
-              🔍 Diagnostic Complet Console
-            </button>
           </div>
 
           {/* Informations de base */}
@@ -388,9 +198,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Article *
-                  <span className="ml-2 text-xs text-blue-600">
-                    (Testez avec "med0001 - ram" pour voir la sélection automatique)
-                  </span>
                 </label>
                 <select
                   required
@@ -431,44 +238,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fournisseur *
-                  {selectedArticle?.supplier && selectedSupplier && (
-                    <span className="ml-2 text-xs font-medium text-green-600">
-                      ✅ Auto-sélectionné depuis l'article
-                    </span>
-                  )}
-                  {selectedArticle?.supplier && !selectedSupplier && (
-                    <span className="ml-2 text-xs font-medium text-red-600">
-                      ⚠️ Fournisseur "{selectedArticle.supplier}" non trouvé
-                    </span>
-                  )}
-                </label>
-                <select
-                  required
-                  value={formData.supplierId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, supplierId: e.target.value });
-                    const newSupplier = activeSuppliers.find(s => s.id === e.target.value);
-                    console.log('🔄 Fournisseur changé manuellement:', newSupplier?.name);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#00A86B' } as any}
-                >
-                  <option value="">Sélectionner un fournisseur</option>
-                  {activeSuppliers.map(supplier => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name} ({supplier.code})
-                    </option>
-                  ))}
-                </select>
-                {selectedSupplier && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Contact: {selectedSupplier.contact.phone || selectedSupplier.contact.email || 'Non renseigné'}
-                  </p>
-                )}
-              </div>
             </div>
           </div>
 
@@ -477,11 +246,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Calendar className="w-5 h-5 mr-2" style={{ color: '#00A86B' }} />
               Informations de livraison
-              {selectedArticle && selectedSupplier && (
-                <span className="ml-auto px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                  Fournisseur lié automatiquement
-                </span>
-              )}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -516,21 +280,14 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Emplacement de stockage
-                  <span className="ml-2 text-xs text-blue-600">
-                    🎯 (Autocomplete amélioré - tapez "ETAGERE" pour tester)
-                  </span>
                 </label>
                 <LocationAutocomplete
                   value={formData.location}
                   onChange={(value) => {
                     setFormData({ ...formData, location: value });
-                    console.log('📍 Emplacement sélectionné:', value);
                   }}
                   placeholder="Ex: ETAGERE 2, Magasin A - Étagère 2, Pharmacie - Armoire B..."
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Tapez pour voir les suggestions ou créer un nouvel emplacement
-                </p>
               </div>
 
               <div>
@@ -666,7 +423,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 <p><strong>Quantité:</strong> {formData.quantity} {selectedArticle.unit}(s)</p>
                 <p><strong>Stock actuel:</strong> {selectedArticle.currentStock} {selectedArticle.unit}(s)</p>
                 <p><strong>Nouveau stock:</strong> {selectedArticle.currentStock + parseInt(formData.quantity || '0')} {selectedArticle.unit}(s)</p>
-                {selectedSupplier && <p><strong>Fournisseur:</strong> {selectedSupplier.name}</p>}
                 {formData.location && <p><strong>Emplacement:</strong> {formData.location}</p>}
                 {formData.batchNumber && <p><strong>Lot:</strong> {formData.batchNumber}</p>}
                 {formData.expiryDate && <p><strong>Expiration:</strong> {new Date(formData.expiryDate).toLocaleDateString()}</p>}

@@ -34,57 +34,7 @@ const Articles: React.FC = () => {
     isUsingFallback, 
     loadingMessage,
     retryConnection 
-  } = useFirestoreWithFallback<Article>('articles', [], [
-    // 🎯 DONNÉES DE FALLBACK COHÉRENTES avec StockEntryModal
-    {
-      id: 'art-med001',
-      code: 'med0001',
-      name: 'ram',
-      category: 'Consommables Médicaux',
-      unit: 'unité',
-      currentStock: 45,
-      minStock: 10,
-      maxStock: 100,
-      supplier: 'SODIM ANDRAHARO',
-      supplierId: 'sup-sodim',
-      description: 'Médicament RAM',
-      status: 'normal',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z'
-    },
-    {
-      id: 'art-fb001',
-      code: 'FB001',
-      name: 'Papier A4 80g',
-      category: 'Fournitures Bureau',
-      unit: 'paquet',
-      currentStock: 150,
-      minStock: 20,
-      maxStock: 200,
-      supplier: 'DISTRIMAD',
-      supplierId: 'sup-distrimad',
-      description: 'Papier A4 standard',
-      status: 'normal',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z'
-    },
-    {
-      id: 'art-it002',
-      code: 'IT002',
-      name: 'Cartouches HP 305',
-      category: 'Consommables IT',
-      unit: 'unité',
-      currentStock: 25,
-      minStock: 5,
-      maxStock: 50,
-      supplier: 'SOCOBIS',
-      supplierId: 'sup-socobis',
-      description: 'Cartouches d\'encre HP',
-      status: 'normal',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z'
-    }
-  ]);
+  } = useFirestoreWithFallback<Article>('articles');
 
   const categories = [
     { value: 'all', label: 'Toutes catégories' },
