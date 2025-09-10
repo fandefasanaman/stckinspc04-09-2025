@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, ArrowUp, Save, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
-import { Article } from '../../types';
+import { Article, Supplier } from '../../types';
+import LocationAutocomplete from '../LocationAutocomplete';
+import { LocationStorageService } from '../../services/locationStorageService';
 
 interface StockEntryModalProps {
   isOpen: boolean;
@@ -29,27 +31,18 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
   // Récupérer les articles depuis Firestore
   const { data: articles } = useFirestoreWithFallback<Article>('articles');
   
-  // Fournisseurs factices pour les tests
-  const suppliers = [
-    { id: 'sup-1', name: 'PHARMADIS MADAGASCAR', code: 'PHAR001', status: 'active', contact: { phone: '+261 20 22 123 45', email: 'contact@pharmadis.mg' } },
-    { id: 'sup-2', name: 'DISTRIMAD', code: 'DIST001', status: 'active', contact: { phone: '+261 20 22 234 56', email: 'info@distrimad.mg' } },
-    { id: 'sup-3', name: 'SOCOBIS', code: 'SOCO001', status: 'active', contact: { phone: '+261 20 22 345 67', email: 'commande@socobis.mg' } },
-    { id: 'sup-4', name: 'MEDICAL SUPPLY MG', code: 'MESU001', status: 'active', contact: { phone: '+261 20 22 456 78', email: 'vente@medicalsupply.mg' } },
-    { id: 'sup-5', name: 'BUREAU CENTER', code: 'BURE001', status: 'active', contact: { phone: '+261 20 22 567 89', email: 'contact@bureaucenter.mg' } }
-  ];
+  // Récupérer les fournisseurs depuis Firestore avec fallback
+  const { data: suppliers } = useFirestoreWithFallback<Supplier>('suppliers', [], [
+    // Données de fallback pour les fournisseurs
+    { id: 'sup-1', name: 'PHARMADIS MADAGASCAR', code: 'PHAR001', status: 'active', contact: { phone: '+261 20 22 123 45', email: 'contact@pharmadis.mg' }, categories: ['Consommables Médicaux'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+    { id: 'sup-2', name: 'DISTRIMAD', code: 'DIST001', status: 'active', contact: { phone: '+261 20 22 234 56', email: 'info@distrimad.mg' }, categories: ['Fournitures Bureau'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+    { id: 'sup-3', name: 'SOCOBIS', code: 'SOCO001', status: 'active', contact: { phone: '+261 20 22 345 67', email: 'commande@socobis.mg' }, categories: ['Consommables IT'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+    { id: 'sup-4', name: 'MEDICAL SUPPLY MG', code: 'MESU001', status: 'active', contact: { phone: '+261 20 22 456 78', email: 'vente@medicalsupply.mg' }, categories: ['Consommables Médicaux'], createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+    { id: 'sup-5', name: 'BUREAU CENTER', code: 'BURE001', status: 'active', contact: { phone: '+261 20 22 567 89', email: 'contact@bureaucenter.mg' }, categories: ['Fournitures Bureau'], createdAt: '2024-01-01', updatedAt: '2024-01-01' }
+  ]);
   
-  // Emplacements factices pour les tests
-  const locations = [
-    { id: 'loc-1', name: 'Magasin Principal', code: 'MAG001', status: 'active', type: 'warehouse' },
-    { id: 'loc-2', name: 'Pharmacie - Armoire A', code: 'PHA001', status: 'active', type: 'cabinet' },
-    { id: 'loc-3', name: 'Bureau - Étagère 1', code: 'BUR001', status: 'active', type: 'shelf' },
-    { id: 'loc-4', name: 'Salle de Soins', code: 'SOI001', status: 'active', type: 'room' },
-    { id: 'loc-5', name: 'Réserve IT', code: 'RIT001', status: 'active', type: 'warehouse' }
-  ];
-
-  // Filtrer les fournisseurs et emplacements actifs
+  // Filtrer les fournisseurs actifs
   const activeSuppliers = suppliers.filter(s => s.status === 'active');
-  const activeLocations = locations.filter(l => l.status === 'active');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +58,11 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       if (!confirm('La date d\'expiration est dans le passé. Voulez-vous continuer ?')) {
         return;
       }
+    }
+    
+    // Sauvegarder l'emplacement dans l'historique s'il est renseigné
+    if (formData.location.trim()) {
+      LocationStorageService.addLocationToHistory(formData.location.trim());
     }
     
     onSave({
@@ -95,13 +93,41 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     onClose();
   };
 
+  // 🚀 FOURNISSEUR INTELLIGENT - Gérer le changement d'article
   const handleArticleChange = (articleId: string) => {
     const selectedArticle = articles.find(a => a.id === articleId);
-    setFormData({ 
-      ...formData, 
-      articleId,
-      articleCode: selectedArticle?.code || ''
-    });
+    
+    if (selectedArticle) {
+      // Trouver le fournisseur de l'article s'il existe
+      let supplierIdToSet = '';
+      if (selectedArticle.supplierId) {
+        // Utiliser l'ID du fournisseur de l'article
+        supplierIdToSet = selectedArticle.supplierId;
+      } else if (selectedArticle.supplier) {
+        // Chercher le fournisseur par nom si pas d'ID
+        const foundSupplier = activeSuppliers.find(s => 
+          s.name.toLowerCase() === selectedArticle.supplier?.toLowerCase()
+        );
+        supplierIdToSet = foundSupplier?.id || '';
+      }
+      
+      setFormData({ 
+        ...formData, 
+        articleId,
+        articleCode: selectedArticle.code,
+        supplierId: supplierIdToSet // 🎯 FOURNISSEUR AUTOMATIQUE
+      });
+      
+      console.log('🎯 Article sélectionné:', selectedArticle.name);
+      console.log('🎯 Fournisseur auto-sélectionné:', supplierIdToSet ? activeSuppliers.find(s => s.id === supplierIdToSet)?.name : 'Aucun');
+    } else {
+      setFormData({ 
+        ...formData, 
+        articleId,
+        articleCode: '',
+        supplierId: '' // Réinitialiser le fournisseur si pas d'article
+      });
+    }
   };
 
   if (!isOpen) return null;
@@ -186,6 +212,11 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Fournisseur *
+                  {selectedArticle?.supplier && (
+                    <span className="ml-2 text-xs text-green-600">
+                      (Auto-sélectionné depuis l'article)
+                    </span>
+                  )}
                 </label>
                 <select
                   required
@@ -215,6 +246,11 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Calendar className="w-5 h-5 mr-2" style={{ color: '#00A86B' }} />
               Informations de livraison
+              {selectedArticle && selectedSupplier && (
+                <span className="ml-auto px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                  Fournisseur lié automatiquement
+                </span>
+              )}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -249,23 +285,18 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Emplacement de stockage
+                  <span className="ml-2 text-xs text-blue-600">
+                    (Saisie libre avec suggestions)
+                  </span>
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#00A86B' } as any}
-                  >
-                    <option value="">Sélectionner un emplacement</option>
-                    {activeLocations.map(location => (
-                      <option key={location.id} value={location.id}>
-                        {location.name} ({location.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <LocationAutocomplete
+                  value={formData.location}
+                  onChange={(value) => setFormData({ ...formData, location: value })}
+                  placeholder="Ex: Magasin A - Étagère 2, Pharmacie - Armoire B..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Tapez pour voir les suggestions ou créer un nouvel emplacement
+                </p>
               </div>
 
               <div>
@@ -402,6 +433,7 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                 <p><strong>Stock actuel:</strong> {selectedArticle.currentStock} {selectedArticle.unit}(s)</p>
                 <p><strong>Nouveau stock:</strong> {selectedArticle.currentStock + parseInt(formData.quantity || '0')} {selectedArticle.unit}(s)</p>
                 {selectedSupplier && <p><strong>Fournisseur:</strong> {selectedSupplier.name}</p>}
+                {formData.location && <p><strong>Emplacement:</strong> {formData.location}</p>}
                 {formData.batchNumber && <p><strong>Lot:</strong> {formData.batchNumber}</p>}
                 {formData.expiryDate && <p><strong>Expiration:</strong> {new Date(formData.expiryDate).toLocaleDateString()}</p>}
               </div>
