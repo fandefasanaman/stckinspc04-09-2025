@@ -4,399 +4,259 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
-  runTransaction
+  getDocs,
+  query,
+  where,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Movement, Article } from '../types';
+import { Supplier } from '../types';
 import { auth } from '../config/firebase';
 
-export class MovementServiceWithFallback {
-  private static movementsCollection = 'movements';
-  private static articlesCollection = 'articles';
-  private static localMovements = new Map<string, Movement>();
+export class SupplierServiceWithFallback {
+  private static suppliersCollection = 'suppliers';
+  private static localSuppliers = new Map<string, Supplier>();
 
-  // Créer une entrée de stock avec fallback
-  static async createStockEntry(entryData: {
-    articleId: string;
-    quantity: number;
-    supplierId?: string;
-    deliveryNote?: string;
-    receivedDate?: string;
-    batchNumber?: string;
-    expiryDate?: string;
-    qualityCheck?: 'pending' | 'passed' | 'failed';
-    qualityNotes?: string;
-    location?: string;
-    reference?: string;
-    notes?: string;
-    userId: string;
-    userName: string;
-    service: string;
-  }): Promise<string> {
-    // 🔍 DIAGNOSTIC DÉTAILLÉ
-    console.log('🔍 DIAGNOSTIC MovementService.createStockEntry:');
+  // Filtrer les fournisseurs par nom (synchrone)
+  static filterSuppliersByName(searchTerm: string, suppliers: Supplier[]): Supplier[] {
+    if (!searchTerm.trim()) {
+      return suppliers;
+    }
+    
+    return suppliers.filter(supplier =>
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  // Rechercher des fournisseurs par nom avec fallback
+  static async searchSuppliersByName(searchTerm: string): Promise<Supplier[]> {
+    console.log('🔍 DIAGNOSTIC SupplierService.searchSuppliersByName:');
     console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
-    console.log('- User ID:', auth.currentUser?.uid);
-    console.log('- Données entrée:', entryData);
+    console.log('- Terme de recherche:', searchTerm);
     console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
 
     try {
-      console.log('🚀 Tentative d\'écriture Firebase pour entrée de stock...');
+      console.log('🚀 Tentative de recherche Firebase pour fournisseurs...');
       
-      // Essayer d'abord Firebase avec transaction
-      const movementId = await runTransaction(db, async (transaction) => {
-        // Récupérer l'article
-        const articleRef = doc(db, this.articlesCollection, entryData.articleId);
-        const articleDoc = await transaction.get(articleRef);
-        
-        if (!articleDoc.exists()) {
-          throw new Error('Article non trouvé');
-        }
-
-        const article = articleDoc.data() as Article;
-        const newStock = article.currentStock + entryData.quantity;
-
-        // Déterminer le nouveau statut
-        let status: 'normal' | 'low' | 'out' = 'normal';
-        if (newStock === 0) {
-          status = 'out';
-        } else if (newStock <= article.minStock) {
-          status = 'low';
-        }
-
-        // Créer le mouvement
-        const movement: Omit<Movement, 'id'> = {
-          type: 'entry',
-          articleId: entryData.articleId,
-          articleCode: article.code,
-          articleName: article.name,
-          quantity: entryData.quantity,
-          unit: article.unit,
-          userId: entryData.userId,
-          userName: entryData.userName,
-          service: entryData.service,
-          supplierId: entryData.supplierId ?? null,
-          supplier: article.supplier || '',
-          deliveryNote: entryData.deliveryNote ?? null,
-          receivedDate: entryData.receivedDate ?? null,
-          batchNumber: entryData.batchNumber ?? null,
-          expiryDate: entryData.expiryDate ?? null,
-          qualityCheck: entryData.qualityCheck || 'pending',
-          qualityNotes: entryData.qualityNotes ?? null,
-          location: entryData.location ?? null,
-          reference: entryData.reference ?? null,
-          notes: entryData.notes ?? null,
-          status: entryData.qualityCheck === 'failed' ? 'pending' : 'validated',
-          date: new Date().toISOString().split('T')[0],
-          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-          createdAt: new Date().toISOString(),
-          validatedBy: entryData.userId,
-          validatedAt: new Date().toISOString()
-        };
-
-        const movementRef = doc(collection(db, this.movementsCollection));
-        transaction.set(movementRef, movement);
-
-        // Mettre à jour le stock de l'article
-        transaction.update(articleRef, {
-          currentStock: newStock,
-          status,
-          batchNumber: entryData.batchNumber ?? null,
-          expiryDate: entryData.expiryDate ?? null,
-          location: entryData.location ?? null,
-          lastEntry: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-
-        return movementRef.id;
+      const q = query(
+        collection(db, this.suppliersCollection),
+        where('name', '>=', searchTerm),
+        where('name', '<=', searchTerm + '\uf8ff'),
+        orderBy('name')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const suppliers: Supplier[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
       });
-
-      console.log('✅ Entrée de stock créée avec succès dans Firebase:', movementId);
-      return movementId;
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors de la création de l\'entrée:', error);
-      console.error('- Code erreur:', (error as any).code);
-      console.error('- Message:', (error as any).message);
       
-      // Fallback: sauvegarder localement
-      const localId = `local-entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const movementData = {
-        id: localId,
-        type: 'entry' as const,
-        articleId: entryData.articleId,
-        articleCode: 'UNKNOWN', // Sera mis à jour lors de la sync
-        articleName: 'Article inconnu',
-        quantity: entryData.quantity,
-        unit: 'unité',
-        userId: entryData.userId,
-        userName: entryData.userName,
-        service: entryData.service,
-       supplierId: entryData.supplierId ?? null,
-        supplier: '',
-       deliveryNote: entryData.deliveryNote ?? null,
-       receivedDate: entryData.receivedDate ?? null,
-       batchNumber: entryData.batchNumber ?? null,
-       expiryDate: entryData.expiryDate ?? null,
-        qualityCheck: entryData.qualityCheck || 'pending',
-       qualityNotes: entryData.qualityNotes ?? null,
-       location: entryData.location ?? null,
-       reference: entryData.reference ?? null,
-       notes: entryData.notes ?? null,
-        status: 'pending' as const,
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        createdAt: new Date().toISOString()
+      console.log('✅ Fournisseurs trouvés dans Firebase:', suppliers.length);
+      return suppliers;
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la recherche de fournisseurs:', error);
+      
+      // Fallback: rechercher dans les données locales
+      const localSuppliers = Array.from(this.localSuppliers.values());
+      const filteredSuppliers = localSuppliers.filter(supplier =>
+        supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      console.log('💾 Fournisseurs trouvés localement:', filteredSuppliers.length);
+      return filteredSuppliers;
+    }
+  }
+
+  // Obtenir ou créer un fournisseur par nom avec fallback
+  static async getOrCreateSupplierByName(name: string): Promise<Supplier> {
+    console.log('🔍 DIAGNOSTIC SupplierService.getOrCreateSupplierByName:');
+    console.log('- Nom du fournisseur:', name);
+    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
+
+    try {
+      console.log('🚀 Tentative de recherche/création Firebase pour fournisseur...');
+      
+      // D'abord, chercher si le fournisseur existe déjà
+      const q = query(
+        collection(db, this.suppliersCollection),
+        where('name', '==', name)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const supplier = { id: doc.id, ...doc.data() } as Supplier;
+        console.log('✅ Fournisseur existant trouvé dans Firebase:', supplier.id);
+        return supplier;
+      }
+      
+      // Si le fournisseur n'existe pas, le créer
+      const newSupplier: Omit<Supplier, 'id'> = {
+        name,
+        contact: '',
+        email: '',
+        phone: '',
+        address: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       
-      this.localMovements.set(localId, movementData);
+      const docRef = await addDoc(collection(db, this.suppliersCollection), newSupplier);
+      const supplier = { id: docRef.id, ...newSupplier };
+      
+      console.log('✅ Nouveau fournisseur créé dans Firebase:', supplier.id);
+      return supplier;
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la recherche/création de fournisseur:', error);
+      
+      // Fallback: chercher localement ou créer localement
+      const existingSupplier = Array.from(this.localSuppliers.values())
+        .find(supplier => supplier.name === name);
+      
+      if (existingSupplier) {
+        console.log('💾 Fournisseur existant trouvé localement:', existingSupplier.id);
+        return existingSupplier;
+      }
+      
+      // Créer un nouveau fournisseur local
+      const localId = `local-supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newSupplier: Supplier = {
+        id: localId,
+        name,
+        contact: '',
+        email: '',
+        phone: '',
+        address: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      this.localSuppliers.set(localId, newSupplier);
       
       // Programmer une synchronisation ultérieure
-      this.scheduleSync('createStockEntry', entryData);
+      this.scheduleSync('createSupplier', newSupplier);
       
-      console.log('💾 Entrée de stock sauvegardée localement avec ID:', localId);
+      console.log('💾 Nouveau fournisseur créé localement:', localId);
+      return newSupplier;
+    }
+  }
+
+  // Créer un fournisseur avec fallback
+  static async createSupplier(supplierData: Omit<Supplier, 'id'>): Promise<string> {
+    console.log('🔍 DIAGNOSTIC SupplierService.createSupplier:');
+    console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
+    console.log('- Données fournisseur:', supplierData);
+    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
+
+    try {
+      console.log('🚀 Tentative de création Firebase pour fournisseur...');
       
+      const docRef = await addDoc(collection(db, this.suppliersCollection), {
+        ...supplierData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('✅ Fournisseur créé avec succès dans Firebase:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la création du fournisseur:', error);
+      
+      // Fallback: sauvegarder localement
+      const localId = `local-supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const supplier = {
+        id: localId,
+        ...supplierData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      this.localSuppliers.set(localId, supplier);
+      
+      // Programmer une synchronisation ultérieure
+      this.scheduleSync('createSupplier', supplierData);
+      
+      console.log('💾 Fournisseur sauvegardé localement avec ID:', localId);
       return localId;
     }
   }
 
-  // Créer une sortie de stock avec fallback
-  static async createStockExit(exitData: {
-    articleId: string;
-    quantity: number;
-    beneficiary: string;
-    reason: string;
-    reference?: string;
-    notes?: string;
-    userId: string;
-    userName: string;
-    service: string;
-  }): Promise<string> {
-    // 🔍 DIAGNOSTIC DÉTAILLÉ
-    console.log('🔍 DIAGNOSTIC MovementService.createStockExit:');
-    console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
-    console.log('- User ID:', auth.currentUser?.uid);
-    console.log('- Données sortie:', exitData);
-    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
-
+  // Mettre à jour un fournisseur avec fallback
+  static async updateSupplier(id: string, supplierData: Partial<Supplier>): Promise<void> {
     try {
-      console.log('🚀 Tentative d\'écriture Firebase pour sortie de stock...');
+      console.log('🚀 Tentative de mise à jour Firebase pour fournisseur:', id);
       
-      // Essayer d'abord Firebase avec transaction
-      const movementId = await runTransaction(db, async (transaction) => {
-        // Récupérer l'article
-        const articleRef = doc(db, this.articlesCollection, exitData.articleId);
-        const articleDoc = await transaction.get(articleRef);
-        
-        if (!articleDoc.exists()) {
-          throw new Error('Article non trouvé');
-        }
-
-        const article = articleDoc.data() as Article;
-        
-        // Vérifier si le stock est suffisant
-        if (article.currentStock < exitData.quantity) {
-          const error = new Error('Stock insuffisant pour cette sortie');
-          (error as any).code = 'insufficient-stock';
-          throw error;
-        }
-
-        const newStock = article.currentStock - exitData.quantity;
-
-        // Déterminer le nouveau statut
-        let status: 'normal' | 'low' | 'out' = 'normal';
-        if (newStock === 0) {
-          status = 'out';
-        } else if (newStock <= article.minStock) {
-          status = 'low';
-        }
-
-        // Créer le mouvement
-        const movement: Omit<Movement, 'id'> = {
-          type: 'exit',
-          articleId: exitData.articleId,
-          articleCode: article.code,
-          articleName: article.name,
-          quantity: exitData.quantity,
-          unit: article.unit,
-          userId: exitData.userId,
-          userName: exitData.userName,
-          service: exitData.service,
-          beneficiary: exitData.beneficiary,
-          reason: exitData.reason,
-          reference: exitData.reference ?? null,
-          notes: exitData.notes ?? null,
-          status: 'pending', // Les sorties nécessitent une validation
-          date: new Date().toISOString().split('T')[0],
-          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-          createdAt: new Date().toISOString()
-        };
-
-        const movementRef = doc(collection(db, this.movementsCollection));
-        transaction.set(movementRef, movement);
-
-        // Mettre à jour le stock de l'article
-        transaction.update(articleRef, {
-          currentStock: newStock,
-          status,
+      const docRef = doc(db, this.suppliersCollection, id);
+      await updateDoc(docRef, {
+        ...supplierData,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('✅ Fournisseur mis à jour avec succès dans Firebase:', id);
+    } catch (error) {
+      console.error('❌ Erreur Firebase lors de la mise à jour du fournisseur:', error);
+      
+      // Fallback: mettre à jour localement
+      const existingSupplier = this.localSuppliers.get(id);
+      if (existingSupplier) {
+        const updatedSupplier = {
+          ...existingSupplier,
+          ...supplierData,
           updatedAt: new Date().toISOString()
-        });
-
-        return movementRef.id;
-      });
-
-      console.log('✅ Sortie de stock créée avec succès dans Firebase:', movementId);
-      return movementId;
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors de la création de la sortie:', error);
-      console.error('- Code erreur:', (error as any).code);
-      console.error('- Message:', (error as any).message);
-      
-      // Fallback: sauvegarder localement
-      const localId = `local-exit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const movementData = {
-        id: localId,
-        type: 'exit' as const,
-        articleId: exitData.articleId,
-        articleCode: 'UNKNOWN', // Sera mis à jour lors de la sync
-        articleName: 'Article inconnu',
-        quantity: exitData.quantity,
-        unit: 'unité',
-        userId: exitData.userId,
-        userName: exitData.userName,
-        service: exitData.service,
-        beneficiary: exitData.beneficiary,
-        reason: exitData.reason,
-       reference: exitData.reference ?? null,
-       notes: exitData.notes ?? null,
-        status: 'pending' as const,
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        createdAt: new Date().toISOString()
-      };
-      
-      this.localMovements.set(localId, movementData);
-      
-      // Programmer une synchronisation ultérieure
-      this.scheduleSync('createStockExit', exitData);
-      
-      console.log('💾 Sortie de stock sauvegardée localement avec ID:', localId);
-      
-      return localId;
-    }
-  }
-
-  // Valider un mouvement avec fallback
-  static async validateMovement(movementId: string, validatedBy: string): Promise<void> {
-    try {
-      console.log('🚀 Tentative de validation Firebase pour mouvement:', movementId);
-      
-      const docRef = doc(db, this.movementsCollection, movementId);
-      await updateDoc(docRef, {
-        status: 'validated',
-        validatedBy,
-        validatedAt: new Date().toISOString()
-      });
-      
-      console.log('✅ Mouvement validé avec succès dans Firebase:', movementId);
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors de la validation:', error);
-      
-      // Fallback: sauvegarder localement
-      const existingMovement = this.localMovements.get(movementId);
-      if (existingMovement) {
-        const updatedMovement = {
-          ...existingMovement,
-          status: 'validated' as const,
-          validatedBy,
-          validatedAt: new Date().toISOString()
         };
-        this.localMovements.set(movementId, updatedMovement);
+        this.localSuppliers.set(id, updatedSupplier);
       }
       
       // Programmer une synchronisation ultérieure
-      this.scheduleSync('validateMovement', { movementId, validatedBy });
+      this.scheduleSync('updateSupplier', { id, supplierData });
     }
   }
 
-  // Rejeter un mouvement avec fallback
-  static async rejectMovement(movementId: string, rejectedBy: string): Promise<void> {
+  // Supprimer un fournisseur avec fallback
+  static async deleteSupplier(id: string): Promise<void> {
     try {
-      console.log('🚀 Tentative de rejet Firebase pour mouvement:', movementId);
+      console.log('🚀 Tentative de suppression Firebase pour fournisseur:', id);
       
-      const docRef = doc(db, this.movementsCollection, movementId);
-      await updateDoc(docRef, {
-        status: 'rejected',
-        validatedBy: rejectedBy,
-        validatedAt: new Date().toISOString()
-      });
-      
-      console.log('✅ Mouvement rejeté avec succès dans Firebase:', movementId);
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors du rejet:', error);
-      
-      // Fallback: sauvegarder localement
-      const existingMovement = this.localMovements.get(movementId);
-      if (existingMovement) {
-        const updatedMovement = {
-          ...existingMovement,
-          status: 'rejected' as const,
-          validatedBy: rejectedBy,
-          validatedAt: new Date().toISOString()
-        };
-        this.localMovements.set(movementId, updatedMovement);
-      }
-      
-      // Programmer une synchronisation ultérieure
-      this.scheduleSync('rejectMovement', { movementId, rejectedBy });
-    }
-  }
-
-  // Supprimer un mouvement avec fallback
-  static async deleteMovement(movementId: string): Promise<void> {
-    try {
-      console.log('🚀 Tentative de suppression Firebase pour mouvement:', movementId);
-      
-      const docRef = doc(db, this.movementsCollection, movementId);
+      const docRef = doc(db, this.suppliersCollection, id);
       await deleteDoc(docRef);
       
-      console.log('✅ Mouvement supprimé avec succès de Firebase:', movementId);
+      console.log('✅ Fournisseur supprimé avec succès de Firebase:', id);
     } catch (error) {
-      console.error('❌ Erreur Firebase lors de la suppression:', error);
+      console.error('❌ Erreur Firebase lors de la suppression du fournisseur:', error);
       
-      // Fallback: marquer comme supprimé localement
-      const existingMovement = this.localMovements.get(movementId);
-      if (existingMovement) {
-        this.localMovements.delete(movementId);
-      }
+      // Fallback: supprimer localement
+      this.localSuppliers.delete(id);
       
       // Programmer une synchronisation ultérieure
-      this.scheduleSync('deleteMovement', { movementId });
+      this.scheduleSync('deleteSupplier', { id });
     }
   }
 
   // Programmer une synchronisation ultérieure
   private static scheduleSync(operation: string, data: any) {
     // Sauvegarder les opérations en attente dans localStorage
-    const pendingOps = JSON.parse(localStorage.getItem('pendingMovementOps') || '[]');
+    const pendingOps = JSON.parse(localStorage.getItem('pendingSupplierOps') || '[]');
     pendingOps.push({
       operation,
       data,
       timestamp: new Date().toISOString()
     });
-    localStorage.setItem('pendingMovementOps', JSON.stringify(pendingOps));
+    localStorage.setItem('pendingSupplierOps', JSON.stringify(pendingOps));
     
     console.log(`Opération ${operation} programmée pour synchronisation ultérieure`);
   }
 
   // Synchroniser les opérations en attente
   static async syncPendingOperations(): Promise<void> {
-    const pendingOps = JSON.parse(localStorage.getItem('pendingMovementOps') || '[]');
+    const pendingOps = JSON.parse(localStorage.getItem('pendingSupplierOps') || '[]');
     
     if (pendingOps.length === 0) {
       return;
     }
 
-    console.log(`Synchronisation de ${pendingOps.length} opérations de mouvements en attente...`);
+    console.log(`Synchronisation de ${pendingOps.length} opérations de fournisseurs en attente...`);
     
     const successfulOps: number[] = [];
     
@@ -405,38 +265,21 @@ export class MovementServiceWithFallback {
       
       try {
         switch (op.operation) {
-          case 'createStockEntry':
-            await this.createStockEntry(op.data);
-            break;
-          case 'createStockExit':
-            try {
-              await this.createStockExit(op.data);
-            } catch (error) {
-              // Si c'est une erreur de stock insuffisant, marquer comme traité pour éviter les tentatives infinies
-              if ((error as any).code === 'insufficient-stock') {
-                console.warn(`Opération createStockExit abandonnée: stock insuffisant pour l'article ${op.data.articleId}`);
-                successfulOps.push(i);
-                continue;
-              }
-              throw error;
-            }
-            break;
-          case 'validateMovement':
-            await updateDoc(doc(db, this.movementsCollection, op.data.movementId), {
-              status: 'validated',
-              validatedBy: op.data.validatedBy,
-              validatedAt: new Date().toISOString()
+          case 'createSupplier':
+            await addDoc(collection(db, this.suppliersCollection), {
+              ...op.data,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             });
             break;
-          case 'rejectMovement':
-            await updateDoc(doc(db, this.movementsCollection, op.data.movementId), {
-              status: 'rejected',
-              validatedBy: op.data.rejectedBy,
-              validatedAt: new Date().toISOString()
+          case 'updateSupplier':
+            await updateDoc(doc(db, this.suppliersCollection, op.data.id), {
+              ...op.data.supplierData,
+              updatedAt: new Date().toISOString()
             });
             break;
-          case 'deleteMovement':
-            await deleteDoc(doc(db, this.movementsCollection, op.data.movementId));
+          case 'deleteSupplier':
+            await deleteDoc(doc(db, this.suppliersCollection, op.data.id));
             break;
         }
         
@@ -450,8 +293,8 @@ export class MovementServiceWithFallback {
     // Supprimer les opérations réussies
     if (successfulOps.length > 0) {
       const remainingOps = pendingOps.filter((_, index) => !successfulOps.includes(index));
-      localStorage.setItem('pendingMovementOps', JSON.stringify(remainingOps));
-      console.log(`${successfulOps.length} opérations de mouvements synchronisées avec succès`);
+      localStorage.setItem('pendingSupplierOps', JSON.stringify(remainingOps));
+      console.log(`${successfulOps.length} opérations de fournisseurs synchronisées avec succès`);
     }
   }
 
@@ -466,8 +309,8 @@ export class MovementServiceWithFallback {
     }, 30000);
   }
 
-  // Obtenir les mouvements locaux (pour le fallback)
-  static getLocalMovements(): Movement[] {
-    return Array.from(this.localMovements.values());
+  // Obtenir les fournisseurs locaux (pour le fallback)
+  static getLocalSuppliers(): Supplier[] {
+    return Array.from(this.localSuppliers.values());
   }
 }

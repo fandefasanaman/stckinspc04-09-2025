@@ -83,11 +83,6 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
     }
   ]);
 
-  // Initialiser les fournisseurs par défaut
-  useEffect(() => {
-    SupplierServiceWithFallback.initializeDefaultSuppliers();
-  }, []);
-
   // Mettre à jour les suggestions quand la valeur change
   useEffect(() => {
     if (isTyping || showSuggestions) {
@@ -255,7 +250,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
           ))}
           
           {/* Option pour ajouter un nouveau fournisseur */}
-          {value.trim() && !suggestions.some(s => s.name.toLowerCase() === value.toLowerCase()) && (
+          {value.trim() && !allSuppliers.some(s => s.name.toLowerCase() === value.toLowerCase()) && (
             <div
               className={`flex items-center px-4 py-3 cursor-pointer border-t-2 border-green-200 bg-green-50 hover:bg-green-100 transition-colors ${
                 highlightedIndex === suggestions.length 

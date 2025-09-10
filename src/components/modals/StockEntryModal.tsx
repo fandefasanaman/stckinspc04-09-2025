@@ -4,7 +4,6 @@ import { useFirestoreWithFallback } from '../../hooks/useFirestoreWithFallback';
 import { Article } from '../../types';
 import LocationAutocomplete from '../LocationAutocomplete';
 import SupplierAutocomplete from '../SupplierAutocomplete';
-import SupplierAutocomplete from '../SupplierAutocomplete';
 import { LocationStorageService } from '../../services/locationStorageService';
 
 interface StockEntryModalProps {
@@ -190,7 +189,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                   setFormData({ ...formData, supplier: value });
                 }}
                 placeholder="Ex: PHARMADIS MADAGASCAR"
-                disabled={disabled}
               />
             </div>
 
@@ -273,7 +271,6 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
                     setFormData({ ...formData, supplier: value });
                   }}
                   placeholder="Ex: PHARMADIS MADAGASCAR"
-                  disabled={disabled}
                 />
               </div>
 
