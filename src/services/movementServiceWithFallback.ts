@@ -75,16 +75,17 @@ export class MovementServiceWithFallback {
           userId: entryData.userId,
           userName: entryData.userName,
           service: entryData.service,
-          supplierId: entryData.supplierId,
-          deliveryNote: entryData.deliveryNote,
-          receivedDate: entryData.receivedDate,
-          batchNumber: entryData.batchNumber,
-          expiryDate: entryData.expiryDate,
+          supplierId: entryData.supplierId ?? null,
+          supplier: article.supplier || '',
+          deliveryNote: entryData.deliveryNote ?? null,
+          receivedDate: entryData.receivedDate ?? null,
+          batchNumber: entryData.batchNumber ?? null,
+          expiryDate: entryData.expiryDate ?? null,
           qualityCheck: entryData.qualityCheck || 'pending',
-          qualityNotes: entryData.qualityNotes,
-          location: entryData.location,
-          reference: entryData.reference,
-          notes: entryData.notes,
+          qualityNotes: entryData.qualityNotes ?? null,
+          location: entryData.location ?? null,
+          reference: entryData.reference ?? null,
+          notes: entryData.notes ?? null,
           status: entryData.qualityCheck === 'failed' ? 'pending' : 'validated',
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -100,9 +101,9 @@ export class MovementServiceWithFallback {
         transaction.update(articleRef, {
           currentStock: newStock,
           status,
-          batchNumber: entryData.batchNumber,
-          expiryDate: entryData.expiryDate,
-          location: entryData.location,
+          batchNumber: entryData.batchNumber ?? null,
+          expiryDate: entryData.expiryDate ?? null,
+          location: entryData.location ?? null,
           lastEntry: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -130,16 +131,17 @@ export class MovementServiceWithFallback {
         userId: entryData.userId,
         userName: entryData.userName,
         service: entryData.service,
-        supplierId: entryData.supplierId,
-        deliveryNote: entryData.deliveryNote,
-        receivedDate: entryData.receivedDate,
-        batchNumber: entryData.batchNumber,
-        expiryDate: entryData.expiryDate,
+       supplierId: entryData.supplierId ?? null,
+        supplier: '',
+       deliveryNote: entryData.deliveryNote ?? null,
+       receivedDate: entryData.receivedDate ?? null,
+       batchNumber: entryData.batchNumber ?? null,
+       expiryDate: entryData.expiryDate ?? null,
         qualityCheck: entryData.qualityCheck || 'pending',
-        qualityNotes: entryData.qualityNotes,
-        location: entryData.location,
-        reference: entryData.reference,
-        notes: entryData.notes,
+       qualityNotes: entryData.qualityNotes ?? null,
+       location: entryData.location ?? null,
+       reference: entryData.reference ?? null,
+       notes: entryData.notes ?? null,
         status: 'pending' as const,
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -193,7 +195,9 @@ export class MovementServiceWithFallback {
         
         // Vérifier si le stock est suffisant
         if (article.currentStock < exitData.quantity) {
-          throw new Error('Stock insuffisant pour cette sortie');
+          const error = new Error('Stock insuffisant pour cette sortie');
+          (error as any).code = 'insufficient-stock';
+          throw error;
         }
 
         const newStock = article.currentStock - exitData.quantity;
@@ -219,8 +223,8 @@ export class MovementServiceWithFallback {
           service: exitData.service,
           beneficiary: exitData.beneficiary,
           reason: exitData.reason,
-          reference: exitData.reference,
-          notes: exitData.notes,
+          reference: exitData.reference ?? null,
+          notes: exitData.notes ?? null,
           status: 'pending', // Les sorties nécessitent une validation
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -262,8 +266,8 @@ export class MovementServiceWithFallback {
         service: exitData.service,
         beneficiary: exitData.beneficiary,
         reason: exitData.reason,
-        reference: exitData.reference,
-        notes: exitData.notes,
+       reference: exitData.reference ?? null,
+       notes: exitData.notes ?? null,
         status: 'pending' as const,
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -405,7 +409,17 @@ export class MovementServiceWithFallback {
             await this.createStockEntry(op.data);
             break;
           case 'createStockExit':
-            await this.createStockExit(op.data);
+            try {
+              await this.createStockExit(op.data);
+            } catch (error) {
+              // Si c'est une erreur de stock insuffisant, marquer comme traité pour éviter les tentatives infinies
+              if ((error as any).code === 'insufficient-stock') {
+                console.warn(`Opération createStockExit abandonnée: stock insuffisant pour l'article ${op.data.articleId}`);
+                successfulOps.push(i);
+                continue;
+              }
+              throw error;
+            }
             break;
           case 'validateMovement':
             await updateDoc(doc(db, this.movementsCollection, op.data.movementId), {

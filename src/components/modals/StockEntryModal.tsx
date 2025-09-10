@@ -24,7 +24,9 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
     qualityCheck: 'pending' as 'pending' | 'passed' | 'failed',
     qualityNotes: '',
     reference: '',
-    notes: ''
+    notes: '',
+    supplierId: '',
+    supplier: ''
   });
 
   // 🎯 DONNÉES ENRICHIES POUR TEST - Articles avec fournisseurs liés
@@ -124,7 +126,9 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       qualityCheck: 'pending',
       qualityNotes: '',
       reference: '',
-      notes: ''
+      notes: '',
+      supplierId: '',
+      supplier: ''
     });
     onClose();
   };
@@ -136,13 +140,17 @@ const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSa
       setFormData({ 
         ...formData, 
         articleId,
-        articleCode: selectedArticle.code
+        articleCode: selectedArticle.code,
+        supplierId: selectedArticle.supplierId || '',
+        supplier: selectedArticle.supplier || ''
       });
     } else {
       setFormData({ 
         ...formData, 
         articleId,
-        articleCode: ''
+        articleCode: '',
+        supplierId: '',
+        supplier: ''
       });
     }
   };
