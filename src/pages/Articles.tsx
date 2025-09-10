@@ -16,6 +16,7 @@ import { useModal } from '../hooks/useModal';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { ArticleServiceWithFallback } from '../services/articleServiceWithFallback';
 import NewArticleModal from '../components/modals/NewArticleModal';
+import EditArticleModal from '../components/modals/EditArticleModal';
 import { Article } from '../types';
 import { FirebaseTestUtils } from '../utils/firebaseTest';
 
@@ -24,6 +25,8 @@ const Articles: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(false);
   const newArticleModal = useModal();
+  const editArticleModal = useModal();
+  const [articleToEdit, setArticleToEdit] = useState<Article | null>(null);
 
   // Utiliser le hook avec fallback pour récupérer les articles
   const { 
@@ -100,12 +103,25 @@ const Articles: React.FC = () => {
     }
   };
 
-  const handleEditArticle = async (articleId: string, updates: Partial<Article>) => {
+  const handleUpdateArticle = async (articleId: string, updates: Partial<Article>) => {
     try {
       await ArticleServiceWithFallback.updateArticle(articleId, updates);
+      console.log('✅ Article mis à jour avec succès:', articleId);
     } catch (error: any) {
       console.error('Erreur lors de la modification de l\'article:', error);
       alert('Erreur lors de la modification: ' + error.message);
+    }
+  };
+
+  const handleEditArticle = (article: Article) => {
+    setArticleToEdit(article);
+    editArticleModal.openModal();
+  };
+
+  const handleUpdateStock = (article: Article) => {
+    const newStock = prompt('Nouveau stock:', article.currentStock.toString());
+    if (newStock && !isNaN(parseInt(newStock))) {
+      ArticleServiceWithFallback.updateStock(article.id, parseInt(newStock));
     }
   };
 
@@ -363,16 +379,20 @@ const Articles: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button 
-                        onClick={() => {
-                          const newStock = prompt('Nouveau stock:', article.currentStock.toString());
-                          if (newStock && !isNaN(parseInt(newStock))) {
-                            ArticleServiceWithFallback.updateStock(article.id, parseInt(newStock));
-                          }
-                        }}
+                        onClick={() => handleEditArticle(article)}
                         className="p-2 rounded-lg hover:bg-gray-100"
-                        style={{ color: '#00A86B' }}
+                        style={{ color: '#6B2C91' }}
+                        title="Modifier l'article"
                       >
                         <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleUpdateStock(article)}
+                        className="p-2 rounded-lg hover:bg-gray-100"
+                        style={{ color: '#00A86B' }}
+                        title="Mettre à jour le stock"
+                      >
+                        <Package className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteArticle(article.id)}
@@ -466,6 +486,17 @@ const Articles: React.FC = () => {
         isOpen={newArticleModal.isOpen}
         onClose={newArticleModal.closeModal}
         onSave={handleNewArticle}
+      />
+      
+      {/* Modal de modification */}
+      <EditArticleModal
+        isOpen={editArticleModal.isOpen}
+        onClose={() => {
+          editArticleModal.closeModal();
+          setArticleToEdit(null);
+        }}
+        onSave={handleUpdateArticle}
+        article={articleToEdit}
       />
     </div>
   );
