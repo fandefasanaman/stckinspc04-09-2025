@@ -80,10 +80,13 @@ const RecentMovements: React.FC = () => {
                     px-2 py-1 text-xs font-medium rounded-full
                     ${movement.type === 'entry' 
                       ? 'bg-green-100 text-green-800' 
+                      : movement.status === 'pending' && userData?.role === 'validator'
+                      ? 'bg-orange-100 text-orange-800'
                       : 'bg-red-100 text-red-800'
                     }
                   `}>
-                    {movement.type === 'entry' ? 'Entrée' : 'Sortie'}
+                    {movement.type === 'entry' ? 'Entrée' : 
+                     movement.status === 'pending' && userData?.role === 'validator' ? 'À Valider' : 'Sortie'}
                   </span>
                 </div>
                 
