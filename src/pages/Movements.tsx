@@ -86,15 +86,15 @@ const Movements: React.FC = () => {
 
   const services = [
     { value: 'all', label: 'Tous les services' },
-    { value: 'sps', label: 'Service Pédagogique et Scientifique' },
-    { value: 'sf', label: 'Service Financier' },
-    { value: 'sa', label: 'Service Administratif' },
-    { value: 'sdoc', label: 'Service Documentation' },
-    { value: 'dfr', label: 'Direction Formation et Recherche' },
-    { value: 'daaf', label: 'Direction des Affaires Administratives' },
-    { value: 'dg', label: 'Direction Générale' },
-    { value: 'echo', label: 'Unité d\'Échographie' },
-    { value: 'acup', label: 'Unité d\'Acupuncture' }
+    { value: 'Service Pédagogique et Scientifique', label: 'Service Pédagogique et Scientifique' },
+    { value: 'Service Financier', label: 'Service Financier' },
+    { value: 'Service Administratif', label: 'Service Administratif' },
+    { value: 'Service Documentation', label: 'Service Documentation' },
+    { value: 'Direction Formation et Recherche', label: 'Direction Formation et Recherche' },
+    { value: 'Direction des Affaires Administratives', label: 'Direction des Affaires Administratives' },
+    { value: 'Direction Générale', label: 'Direction Générale' },
+    { value: 'Unité d\'Échographie', label: 'Unité d\'Échographie' },
+    { value: 'Unité d\'Acupuncture', label: 'Unité d\'Acupuncture' }
   ];
 
   const getMovementIcon = (type: string) => {
@@ -135,8 +135,7 @@ const Movements: React.FC = () => {
                          movement.articleCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          movement.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || movement.type === selectedType;
-    const matchesService = selectedService === 'all' || 
-                          (movement.service && movement.service.toLowerCase().includes(selectedService));
+    const matchesService = selectedService === 'all' || movement.service === selectedService;
     return matchesSearch && matchesType && matchesService;
   });
 
