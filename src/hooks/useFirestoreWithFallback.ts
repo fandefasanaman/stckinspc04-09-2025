@@ -18,7 +18,9 @@ function sanitizeDocumentData<T>(collectionName: string, docData: any): T {
     case 'movements':
       return {
         ...baseData,
-        service: baseData.service || 'Service Inconnu',
+        service: (baseData.service && baseData.service !== 'non défini' && baseData.service.trim() !== '') 
+          ? baseData.service 
+          : 'Service Inconnu',
         articleCode: baseData.articleCode || 'CODE_INCONNU',
         articleName: baseData.articleName || 'Article Inconnu',
         userName: baseData.userName || 'Utilisateur Inconnu',
@@ -58,7 +60,9 @@ function sanitizeDocumentData<T>(collectionName: string, docData: any): T {
         email: baseData.email || 'email@inconnu.mg',
         phone: baseData.phone || '',
         role: baseData.role || 'user',
-        service: baseData.service || 'Service Inconnu',
+        service: (baseData.service && baseData.service !== 'non défini' && baseData.service.trim() !== '') 
+          ? baseData.service 
+          : 'Service Inconnu',
         status: baseData.status || 'active',
         createdAt: baseData.createdAt || new Date().toISOString()
       } as T;
@@ -184,12 +188,12 @@ export function useFirestoreWithFallback<T = DocumentData>(
         clearInterval(progressInterval);
         if (mounted.current) {
           // 🚀 NETTOYAGE ET VALIDATION DES DONNÉES FIREBASE
-          const documents = querySnapshot.docs.map(doc => ({
+          const documents = querySnapshot.docs.map(doc => {
             const rawData = { id: doc.id, ...doc.data() };
             // Nettoyer et valider les données selon le type de collection
             return sanitizeDocumentData<T>(collectionName, rawData);
           });
-          )
+          
           
           console.log(`✅ Données Firebase nettoyées et chargées pour ${collectionName}: ${documents.length} éléments`);
           console.log(`🔍 Exemple de données nettoyées:`, documents[0]);

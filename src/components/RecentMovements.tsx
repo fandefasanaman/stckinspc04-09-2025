@@ -99,7 +99,7 @@ const RecentMovements: React.FC = () => {
                 
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-xs" style={{ color: '#00A86B' }}>
-                    {movement.service || 'Service non défini'}
+                    {movement.service}
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="w-3 h-3 mr-1" />
