@@ -10,9 +10,10 @@ interface StockEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (entry: any) => void;
+  disabled?: boolean;
 }
 
-const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSave }) => {
+const StockEntryModal: React.FC<StockEntryModalProps> = ({ isOpen, onClose, onSave, disabled = false }) => {
   const [formData, setFormData] = useState({
     articleCode: '',
     articleId: '',

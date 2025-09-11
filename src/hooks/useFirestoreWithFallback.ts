@@ -18,9 +18,7 @@ function sanitizeDocumentData<T>(collectionName: string, docData: any): T {
     case 'movements':
       return {
         ...baseData,
-        service: (baseData.service && baseData.service !== 'non défini' && baseData.service.trim() !== '') 
-          ? baseData.service 
-          : 'Service Inconnu',
+        service: baseData.service || 'Service non défini',
         articleCode: baseData.articleCode || 'CODE_INCONNU',
         articleName: baseData.articleName || 'Article Inconnu',
         userName: baseData.userName || 'Utilisateur Inconnu',

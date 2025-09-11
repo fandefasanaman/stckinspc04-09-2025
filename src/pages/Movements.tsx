@@ -173,13 +173,14 @@ const Movements: React.FC = () => {
       await MovementServiceWithFallback.createStockExit({
         articleId: exitData.articleId,
         quantity: parseInt(exitData.quantity),
+        service: exitData.service,
         beneficiary: exitData.beneficiary,
         reason: exitData.reason,
         reference: exitData.reference,
         notes: exitData.notes,
         userId: userData.id,
         userName: userData.name,
-        service: userData.service
+        service: exitData.service
       });
       
       // Le hook useFirestore se mettra à jour automatiquement
@@ -460,12 +461,22 @@ const Movements: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Building className="w-4 h-4 mr-2 text-gray-400" />
-                        <span 
-                          className="text-sm font-medium"
-                          style={{ color: '#00A86B' }}
-                        >
-                          {movement.service}
-                        </span>
+                        <div>
+                          <span 
+                            className="text-sm font-medium"
+                            style={{ color: '#00A86B' }}
+                          >
+                            {movement.service && movement.service !== 'Service non défini' 
+                              ? movement.service 
+                              : 'Service non défini'
+                            }
+                          </span>
+                          {movement.service && movement.service !== 'Service non défini' && (
+                            <div className="text-xs text-gray-500">
+                              Service validé
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -547,6 +558,7 @@ const Movements: React.FC = () => {
         isOpen={stockEntryModal.isOpen}
         onClose={stockEntryModal.closeModal}
         onSave={handleStockEntry}
+        disabled={loading}
       />
       <StockExitModal
         isOpen={stockExitModal.isOpen}

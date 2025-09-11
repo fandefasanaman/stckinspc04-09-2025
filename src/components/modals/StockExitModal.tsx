@@ -38,12 +38,20 @@ const StockExitModal: React.FC<StockExitModalProps> = ({ isOpen, onClose, onSave
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation des champs obligatoires
+    if (!formData.articleId || !formData.quantity || !formData.service || !formData.beneficiary || !formData.reason) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
     onSave({
       ...formData,
       type: 'exit',
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      user: 'Utilisateur Actuel',
+      userId: 'current-user-id',
+      userName: 'Utilisateur Actuel',
       status: 'pending'
     });
     setFormData({
