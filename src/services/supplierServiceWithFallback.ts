@@ -16,149 +16,104 @@ import { auth } from '../config/firebase';
 export class SupplierServiceWithFallback {
   private static suppliersCollection = 'suppliers';
   private static localSuppliers = new Map<string, Supplier>();
+  private static initialized = false;
 
-  // Filtrer les fournisseurs par nom (synchrone)
-  static filterSuppliersByName(searchTerm: string, suppliers: Supplier[]): Supplier[] {
-    if (!searchTerm.trim()) {
-      return suppliers;
-    }
-    
-    return suppliers.filter(supplier =>
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }
+  // Initialiser les fournisseurs par défaut
+  static async initializeDefaultSuppliers(): Promise<void> {
+    if (this.initialized) return;
 
-  // Rechercher des fournisseurs par nom avec fallback
-  static async searchSuppliersByName(searchTerm: string): Promise<Supplier[]> {
-    console.log('🔍 DIAGNOSTIC SupplierService.searchSuppliersByName:');
-    console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
-    console.log('- Terme de recherche:', searchTerm);
-    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
-
-    try {
-      console.log('🚀 Tentative de recherche Firebase pour fournisseurs...');
-      
-      const q = query(
-        collection(db, this.suppliersCollection),
-        where('name', '>=', searchTerm),
-        where('name', '<=', searchTerm + '\uf8ff'),
-        orderBy('name')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const suppliers: Supplier[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
-      });
-      
-      console.log('✅ Fournisseurs trouvés dans Firebase:', suppliers.length);
-      return suppliers;
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors de la recherche de fournisseurs:', error);
-      
-      // Fallback: rechercher dans les données locales
-      const localSuppliers = Array.from(this.localSuppliers.values());
-      const filteredSuppliers = localSuppliers.filter(supplier =>
-        supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      
-      console.log('💾 Fournisseurs trouvés localement:', filteredSuppliers.length);
-      return filteredSuppliers;
-    }
-  }
-
-  // Obtenir ou créer un fournisseur par nom avec fallback
-  static async getOrCreateSupplierByName(name: string): Promise<Supplier> {
-    console.log('🔍 DIAGNOSTIC SupplierService.getOrCreateSupplierByName:');
-    console.log('- Nom du fournisseur:', name);
-    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
-
-    try {
-      console.log('🚀 Tentative de recherche/création Firebase pour fournisseur...');
-      
-      // D'abord, chercher si le fournisseur existe déjà
-      const q = query(
-        collection(db, this.suppliersCollection),
-        where('name', '==', name)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const supplier = { id: doc.id, ...doc.data() } as Supplier;
-        console.log('✅ Fournisseur existant trouvé dans Firebase:', supplier.id);
-        return supplier;
-      }
-      
-      // Si le fournisseur n'existe pas, le créer
-      const newSupplier: Omit<Supplier, 'id'> = {
-        name,
-        contact: '',
-        email: '',
-        phone: '',
-        address: '',
+    const defaultSuppliers: Omit<Supplier, 'id'>[] = [
+      {
+        name: 'SODIM ANDRAHARO',
+        code: 'SOD001',
+        contact: {
+          email: 'contact@sodim.mg',
+          phone: '+261 20 22 123 45',
+          address: 'Andraharo, Antananarivo'
+        },
+        categories: ['Consommables Médicaux'],
+        status: 'active',
+        notes: 'Fournisseur principal de médicaments',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      };
-      
-      const docRef = await addDoc(collection(db, this.suppliersCollection), newSupplier);
-      const supplier = { id: docRef.id, ...newSupplier };
-      
-      console.log('✅ Nouveau fournisseur créé dans Firebase:', supplier.id);
-      return supplier;
-    } catch (error) {
-      console.error('❌ Erreur Firebase lors de la recherche/création de fournisseur:', error);
-      
-      // Fallback: chercher localement ou créer localement
-      const existingSupplier = Array.from(this.localSuppliers.values())
-        .find(supplier => supplier.name === name);
-      
-      if (existingSupplier) {
-        console.log('💾 Fournisseur existant trouvé localement:', existingSupplier.id);
-        return existingSupplier;
-      }
-      
-      // Créer un nouveau fournisseur local
-      const localId = `local-supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newSupplier: Supplier = {
-        id: localId,
-        name,
-        contact: '',
-        email: '',
-        phone: '',
-        address: '',
+      },
+      {
+        name: 'DISTRIMAD',
+        code: 'DIS001',
+        contact: {
+          email: 'commercial@distrimad.mg',
+          phone: '+261 20 22 234 56',
+          address: 'Antananarivo'
+        },
+        categories: ['Fournitures Bureau'],
+        status: 'active',
+        notes: 'Fournitures de bureau et consommables',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      };
-      
-      this.localSuppliers.set(localId, newSupplier);
-      
-      // Programmer une synchronisation ultérieure
-      this.scheduleSync('createSupplier', newSupplier);
-      
-      console.log('💾 Nouveau fournisseur créé localement:', localId);
-      return newSupplier;
+      },
+      {
+        name: 'SOCOBIS',
+        code: 'SOC001',
+        contact: {
+          email: 'it@socobis.mg',
+          phone: '+261 20 22 345 67',
+          address: 'Antananarivo'
+        },
+        categories: ['Consommables IT'],
+        status: 'active',
+        notes: 'Matériel informatique et consommables IT',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        name: 'PHARMADIS MADAGASCAR',
+        code: 'PHA001',
+        contact: {
+          email: 'client@pharmadis.mg',
+          phone: '+261 20 22 456 78',
+          address: 'Antananarivo'
+        },
+        categories: ['Consommables Médicaux'],
+        status: 'active',
+        notes: 'Distribution pharmaceutique',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
+    // Sauvegarder localement d'abord
+    defaultSuppliers.forEach((supplier, index) => {
+      const id = `default-supplier-${index + 1}`;
+      this.localSuppliers.set(id, { ...supplier, id });
+    });
+
+    try {
+      // Essayer de sauvegarder dans Firebase
+      for (const supplier of defaultSuppliers) {
+        await addDoc(collection(db, this.suppliersCollection), supplier);
+      }
+      console.log('✅ Fournisseurs par défaut initialisés dans Firebase');
+    } catch (error) {
+      console.warn('⚠️ Impossible d\'initialiser les fournisseurs dans Firebase, utilisation du fallback local');
     }
+
+    this.initialized = true;
   }
 
-  // Créer un fournisseur avec fallback
-  static async createSupplier(supplierData: Omit<Supplier, 'id'>): Promise<string> {
+  // Créer un nouveau fournisseur avec fallback
+  static async createSupplier(supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     console.log('🔍 DIAGNOSTIC SupplierService.createSupplier:');
     console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
     console.log('- Données fournisseur:', supplierData);
-    console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
 
     try {
-      console.log('🚀 Tentative de création Firebase pour fournisseur...');
-      
-      const docRef = await addDoc(collection(db, this.suppliersCollection), {
+      const newSupplier = {
         ...supplierData,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
-      
+      };
+
+      const docRef = await addDoc(collection(db, this.suppliersCollection), newSupplier);
       console.log('✅ Fournisseur créé avec succès dans Firebase:', docRef.id);
       return docRef.id;
     } catch (error) {
@@ -166,14 +121,14 @@ export class SupplierServiceWithFallback {
       
       // Fallback: sauvegarder localement
       const localId = `local-supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const supplier = {
-        id: localId,
+      const supplierWithId = {
         ...supplierData,
+        id: localId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      this.localSuppliers.set(localId, supplier);
+      this.localSuppliers.set(localId, supplierWithId);
       
       // Programmer une synchronisation ultérieure
       this.scheduleSync('createSupplier', supplierData);
@@ -183,60 +138,165 @@ export class SupplierServiceWithFallback {
     }
   }
 
-  // Mettre à jour un fournisseur avec fallback
-  static async updateSupplier(id: string, supplierData: Partial<Supplier>): Promise<void> {
+  // Mettre à jour un fournisseur
+  static async updateSupplier(supplierId: string, updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>): Promise<void> {
     try {
-      console.log('🚀 Tentative de mise à jour Firebase pour fournisseur:', id);
-      
-      const docRef = doc(db, this.suppliersCollection, id);
-      await updateDoc(docRef, {
-        ...supplierData,
+      const updateData = {
+        ...updates,
         updatedAt: new Date().toISOString()
-      });
-      
-      console.log('✅ Fournisseur mis à jour avec succès dans Firebase:', id);
+      };
+
+      const docRef = doc(db, this.suppliersCollection, supplierId);
+      await updateDoc(docRef, updateData);
+      console.log('✅ Fournisseur mis à jour avec succès dans Firebase:', supplierId);
     } catch (error) {
       console.error('❌ Erreur Firebase lors de la mise à jour du fournisseur:', error);
       
       // Fallback: mettre à jour localement
-      const existingSupplier = this.localSuppliers.get(id);
+      const existingSupplier = this.localSuppliers.get(supplierId);
       if (existingSupplier) {
         const updatedSupplier = {
           ...existingSupplier,
-          ...supplierData,
+          ...updates,
           updatedAt: new Date().toISOString()
         };
-        this.localSuppliers.set(id, updatedSupplier);
+        this.localSuppliers.set(supplierId, updatedSupplier);
       }
       
       // Programmer une synchronisation ultérieure
-      this.scheduleSync('updateSupplier', { id, supplierData });
+      this.scheduleSync('updateSupplier', { supplierId, updates });
     }
   }
 
-  // Supprimer un fournisseur avec fallback
-  static async deleteSupplier(id: string): Promise<void> {
+  // Supprimer un fournisseur
+  static async deleteSupplier(supplierId: string): Promise<void> {
     try {
-      console.log('🚀 Tentative de suppression Firebase pour fournisseur:', id);
-      
-      const docRef = doc(db, this.suppliersCollection, id);
+      const docRef = doc(db, this.suppliersCollection, supplierId);
       await deleteDoc(docRef);
-      
-      console.log('✅ Fournisseur supprimé avec succès de Firebase:', id);
+      console.log('✅ Fournisseur supprimé avec succès de Firebase:', supplierId);
     } catch (error) {
       console.error('❌ Erreur Firebase lors de la suppression du fournisseur:', error);
       
       // Fallback: supprimer localement
-      this.localSuppliers.delete(id);
+      this.localSuppliers.delete(supplierId);
       
       // Programmer une synchronisation ultérieure
-      this.scheduleSync('deleteSupplier', { id });
+      this.scheduleSync('deleteSupplier', { supplierId });
+    }
+  }
+
+  // Rechercher des fournisseurs par nom
+  static searchSuppliersByName(searchTerm: string, allSuppliers: Supplier[] = []): Supplier[] {
+    // Utiliser d'abord les données fournies, sinon les données locales
+    const suppliersToSearch = allSuppliers.length > 0 ? allSuppliers : Array.from(this.localSuppliers.values());
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      return suppliersToSearch.slice(0, 10);
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    
+    return suppliersToSearch.filter(supplier => 
+      supplier.name.toLowerCase().includes(term) ||
+      supplier.code.toLowerCase().includes(term)
+    ).slice(0, 10);
+  }
+
+  // Obtenir ou créer un fournisseur par nom
+  static async getOrCreateSupplierByName(supplierName: string): Promise<Supplier> {
+    try {
+      // Rechercher d'abord dans Firebase
+      const q = query(
+        collection(db, this.suppliersCollection),
+        where('name', '==', supplierName.trim())
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        return {
+          id: doc.id,
+          ...doc.data()
+        } as Supplier;
+      }
+      
+      // Si pas trouvé, créer un nouveau fournisseur
+      const newSupplierId = await this.createSupplier({
+        name: supplierName.trim(),
+        code: `SUP${Date.now().toString().slice(-6)}`,
+        contact: {},
+        categories: [],
+        status: 'active',
+        notes: 'Fournisseur créé automatiquement'
+      });
+      
+      return {
+        id: newSupplierId,
+        name: supplierName.trim(),
+        code: `SUP${Date.now().toString().slice(-6)}`,
+        contact: {},
+        categories: [],
+        status: 'active',
+        notes: 'Fournisseur créé automatiquement',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error('Erreur lors de la résolution du fournisseur:', error);
+      
+      // Fallback: créer localement
+      const localId = `local-supplier-${Date.now()}`;
+      const supplier: Supplier = {
+        id: localId,
+        name: supplierName.trim(),
+        code: `SUP${Date.now().toString().slice(-6)}`,
+        contact: {},
+        categories: [],
+        status: 'active',
+        notes: 'Fournisseur créé automatiquement (local)',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      this.localSuppliers.set(localId, supplier);
+      return supplier;
+    }
+  }
+
+  // Obtenir tous les fournisseurs
+  static async getAllSuppliers(): Promise<Supplier[]> {
+    try {
+      const querySnapshot = await getDocs(collection(db, this.suppliersCollection));
+      const suppliers = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Supplier));
+      
+      return suppliers;
+    } catch (error) {
+      console.warn('⚠️ Erreur lors de la récupération Firebase, utilisation du fallback local');
+      
+      // Fallback: retourner les fournisseurs locaux
+      return Array.from(this.localSuppliers.values());
+    }
+  }
+
+  // Résoudre un nom de fournisseur en ID
+  static async resolveSupplierNameToId(supplierName: string): Promise<string | null> {
+    try {
+      const suppliers = await this.getAllSuppliers();
+      const supplier = suppliers.find(s => s.name.toLowerCase() === supplierName.toLowerCase());
+      return supplier?.id || null;
+    } catch (error) {
+      console.error('Erreur lors de la résolution du nom de fournisseur:', error);
+      return null;
     }
   }
 
   // Programmer une synchronisation ultérieure
   private static scheduleSync(operation: string, data: any) {
-    // Sauvegarder les opérations en attente dans localStorage
     const pendingOps = JSON.parse(localStorage.getItem('pendingSupplierOps') || '[]');
     pendingOps.push({
       operation,
@@ -273,13 +333,13 @@ export class SupplierServiceWithFallback {
             });
             break;
           case 'updateSupplier':
-            await updateDoc(doc(db, this.suppliersCollection, op.data.id), {
-              ...op.data.supplierData,
+            await updateDoc(doc(db, this.suppliersCollection, op.data.supplierId), {
+              ...op.data.updates,
               updatedAt: new Date().toISOString()
             });
             break;
           case 'deleteSupplier':
-            await deleteDoc(doc(db, this.suppliersCollection, op.data.id));
+            await deleteDoc(doc(db, this.suppliersCollection, op.data.supplierId));
             break;
         }
         
@@ -298,7 +358,7 @@ export class SupplierServiceWithFallback {
     }
   }
 
-  // Vérifier et synchroniser automatiquement
+  // Démarrer la synchronisation automatique
   static startAutoSync() {
     // Synchroniser immédiatement
     this.syncPendingOperations().catch(console.error);

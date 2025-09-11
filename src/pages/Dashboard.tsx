@@ -154,6 +154,9 @@ const Dashboard: React.FC = () => {
     
     // Grouper les mouvements par service
     movements.forEach(movement => {
+      // Ignorer les mouvements sans service défini
+      if (!movement.service || movement.service === 'Service Inconnu') return;
+      
       if (!serviceStats[movement.service]) {
         serviceStats[movement.service] = {
           movements: 0,

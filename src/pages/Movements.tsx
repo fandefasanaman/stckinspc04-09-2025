@@ -136,7 +136,7 @@ const Movements: React.FC = () => {
                          movement.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || movement.type === selectedType;
     const matchesService = selectedService === 'all' || 
-                          movement.service.toLowerCase().includes(selectedService);
+                          (movement.service && movement.service.toLowerCase().includes(selectedService));
     return matchesSearch && matchesType && matchesService;
   });
 

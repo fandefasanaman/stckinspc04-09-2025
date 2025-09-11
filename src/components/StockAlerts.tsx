@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Package, Calendar } from 'lucide-react';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
-import { StockAlert } from '../types';
+import { StockAlert, Article } from '../types';
 
 const StockAlerts: React.FC = () => {
   // Récupérer les alertes depuis Firestore avec fallback

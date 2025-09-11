@@ -560,7 +560,7 @@ const Reports: React.FC = () => {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Array.from(new Set(movements.map(m => m.service))).slice(0, 6).map((service) => {
+            {Array.from(new Set(movements.map(m => m.service).filter(Boolean))).slice(0, 6).map((service) => {
               const serviceMovements = movements.filter(m => m.service === service);
               const serviceExits = serviceMovements.filter(m => m.type === 'exit');
               const totalQuantity = serviceExits.reduce((sum, m) => sum + m.quantity, 0);

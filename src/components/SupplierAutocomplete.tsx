@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Truck, X, Plus } from 'lucide-react';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
-import { SupplierServiceWithFallback } from '../services/supplierServiceWithFallback';
 import { Supplier } from '../types';
+import { SupplierServiceWithFallback } from '../services/supplierServiceWithFallback';
 
 interface SupplierAutocompleteProps {
   value: string;
@@ -82,6 +82,11 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
       updatedAt: new Date().toISOString()
     }
   ]);
+
+  // Initialiser les fournisseurs par défaut
+  useEffect(() => {
+    SupplierServiceWithFallback.initializeDefaultSuppliers();
+  }, []);
 
   // Mettre à jour les suggestions quand la valeur change
   useEffect(() => {
@@ -250,7 +255,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
           ))}
           
           {/* Option pour ajouter un nouveau fournisseur */}
-          {value.trim() && !allSuppliers.some(s => s.name.toLowerCase() === value.toLowerCase()) && (
+          {value.trim() && !suggestions.some(s => s.name.toLowerCase() === value.toLowerCase()) && (
             <div
               className={`flex items-center px-4 py-3 cursor-pointer border-t-2 border-green-200 bg-green-50 hover:bg-green-100 transition-colors ${
                 highlightedIndex === suggestions.length 
