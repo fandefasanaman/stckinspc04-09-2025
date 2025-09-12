@@ -21,6 +21,7 @@ export class UserServiceWithFallback {
     console.log('- User authentifié:', auth.currentUser ? 'OUI' : 'NON');
     console.log('- User ID:', auth.currentUser?.uid);
     console.log('- Données utilisateur:', userData);
+    console.log('- Rôle utilisateur:', userData.role);
     console.log('- Network status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
 
     try {

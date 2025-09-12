@@ -72,7 +72,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/articles" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="user">
                 <Articles />
               </ProtectedRoute>
             } />
@@ -82,7 +82,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/inventory" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="supervisor">
                 <Inventory />
               </ProtectedRoute>
             } />
@@ -92,12 +92,12 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/users" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <Users />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <Settings />
               </ProtectedRoute>
             } />

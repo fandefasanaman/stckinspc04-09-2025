@@ -68,7 +68,8 @@ const Users: React.FC = () => {
       admin: { label: 'Admin', color: '#DC143C', bgColor: '#DC143C20' },
       manager: { label: 'Gestionnaire', color: '#6B2C91', bgColor: '#6B2C9120' },
       supervisor: { label: 'Responsable', color: '#D4AF37', bgColor: '#D4AF3720' },
-      user: { label: 'Utilisateur', color: '#00A86B', bgColor: '#00A86B20' }
+      user: { label: 'Utilisateur', color: '#00A86B', bgColor: '#00A86B20' },
+      validator: { label: 'Validateur', color: '#FF6B35', bgColor: '#FF6B3520' }
     };
 
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.user;
@@ -131,7 +132,8 @@ const Users: React.FC = () => {
     admin: users.filter(u => u.role === 'admin').length,
     manager: users.filter(u => u.role === 'manager').length,
     supervisor: users.filter(u => u.role === 'supervisor').length,
-    user: users.filter(u => u.role === 'user').length
+    user: users.filter(u => u.role === 'user').length,
+    validator: users.filter(u => u.role === 'validator').length
   };
 
   return (
@@ -202,7 +204,7 @@ const Users: React.FC = () => {
             </div>
             <div>
               <p className="text-2xl font-bold" style={{ color: '#D4AF37' }}>
-                {roleStats.manager + roleStats.supervisor}
+                {roleStats.manager + roleStats.supervisor + roleStats.validator}
               </p>
               <p className="text-sm text-gray-600">Gestionnaires</p>
             </div>
