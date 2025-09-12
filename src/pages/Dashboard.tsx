@@ -1,8 +1,8 @@
 import React from 'react';
 import StatsCard from '../components/StatsCard';
 import RecentMovements from '../components/RecentMovements';
-import { StockAlerts } from '../components/StockAlerts';
-import { TopArticles } from '../components/TopArticles';
+import StockAlerts from '../components/StockAlerts';
+import TopArticles from '../components/TopArticles';
 import InventoryProgress from '../components/InventoryProgress';
 import DonutChart from '../components/DonutChart';
 import { Package, TrendingUp, AlertTriangle, Users } from 'lucide-react';
@@ -109,3 +109,5 @@ const Dashboard: React.FC = () => {
     </div>
   );
 }
+
+export default Dashboard;
