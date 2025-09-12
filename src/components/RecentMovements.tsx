@@ -1,12 +1,9 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, Clock, User } from 'lucide-react';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
-import { useAuth } from '../contexts/AuthContext';
 import { Movement } from '../types';
 
 const RecentMovements: React.FC = () => {
-  const { userData } = useAuth();
-  
   // Récupérer les mouvements récents depuis Firestore
   const { data: allMovements, loading, error } = useFirestoreWithFallback<Movement>('movements');
   

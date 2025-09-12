@@ -20,7 +20,7 @@ import { useModal } from '../hooks/useModal';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
 import { useAuth } from '../contexts/AuthContext';
 import { MovementServiceWithFallback } from '../services/movementServiceWithFallback';
-import { StockEntryModal } from '../components/modals/StockEntryModal';
+import StockEntryModal from '../components/modals/StockEntryModal';
 import StockExitModal from '../components/modals/StockExitModal';
 import { Movement } from '../types';
 
