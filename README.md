@@ -158,12 +158,6 @@ Copier le contenu du fichier `firestore.rules` dans la console Firebase.
 - Consultation des stocks
 - Rapports de son service
 
-### Validateur de Sorties
-- Validation exclusive des sorties de stock en attente
-- Consultation en lecture seule de tous les mouvements
-- Accès aux rapports de validation
-- Interface simplifiée et spécialisée
-
 ### Utilisateur
 - Demandes de sortie uniquement
 - Consultation limitée des stocks

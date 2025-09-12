@@ -64,24 +64,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Navigation */}
         <nav className="mt-6 px-4">
-          {/* Message spécial pour les validateurs */}
-          {userData?.role === 'validator' && (
-            <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-center">
-                <div 
-                  className="w-6 h-6 rounded-full flex items-center justify-center mr-2"
-                  style={{ backgroundColor: '#FF6B35' }}
-                >
-                  <span className="text-xs text-white font-bold">V</span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-orange-800">Mode Validateur</p>
-                  <p className="text-xs text-orange-600">Validation des sorties uniquement</p>
-                </div>
-              </div>
-            </div>
-          )}
-          
           <ul className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;

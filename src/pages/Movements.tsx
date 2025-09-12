@@ -11,10 +11,7 @@ import {
   Download,
   Wifi,
   WifiOff,
-  RefreshCw,
-  CheckCircle,
-  X,
-  AlertTriangle
+  RefreshCw
 } from 'lucide-react';
 import { useModal } from '../hooks/useModal';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
@@ -32,10 +29,6 @@ const Movements: React.FC = () => {
   const stockEntryModal = useModal();
   const stockExitModal = useModal();
   const { userData } = useAuth();
-
-  // Vérifier si l'utilisateur est un validateur
-  const isValidator = userData?.role === 'validator';
-  const canCreateMovements = !isValidator;
 
   // Utiliser le hook avec fallback pour récupérer les mouvements
   const { 
@@ -198,36 +191,6 @@ const Movements: React.FC = () => {
     }
   };
 
-  const handleValidateMovement = async (movementId: string) => {
-    if (!userData) return;
-    
-    setLoading(true);
-    try {
-      await MovementServiceWithFallback.validateMovement(movementId, userData.id);
-      console.log('✅ Mouvement validé avec succès:', movementId);
-    } catch (error: any) {
-      console.error('Erreur lors de la validation du mouvement:', error);
-      alert('Erreur lors de la validation: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRejectMovement = async (movementId: string) => {
-    if (!userData || !confirm('Êtes-vous sûr de vouloir rejeter ce mouvement ?')) return;
-    
-    setLoading(true);
-    try {
-      await MovementServiceWithFallback.rejectMovement(movementId, userData.id);
-      console.log('✅ Mouvement rejeté avec succès:', movementId);
-    } catch (error: any) {
-      console.error('Erreur lors du rejet du mouvement:', error);
-      alert('Erreur lors du rejet: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (movementsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -317,36 +280,26 @@ const Movements: React.FC = () => {
             )}
           </div>
         </div>
-        {canCreateMovements && (
-          <div className="flex space-x-3">
-            <button 
-              onClick={stockEntryModal.openModal}
-              disabled={loading}
-              className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#00A86B' }}
-            >
-              <ArrowUp className="w-4 h-4 mr-2" />
-              {loading ? 'Traitement...' : 'Entrée Stock'}
-            </button>
-            <button 
-              onClick={stockExitModal.openModal}
-              disabled={loading}
-              className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#DC143C' }}
-            >
-              <ArrowDown className="w-4 h-4 mr-2" />
-              {loading ? 'Traitement...' : 'Sortie Stock'}
-            </button>
-          </div>
-        )}
-        {isValidator && (
-          <div className="flex items-center px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg">
-            <AlertTriangle className="w-5 h-5 text-orange-500 mr-2" />
-            <span className="text-sm text-orange-700 font-medium">
-              Mode Validateur - Lecture seule avec validation des sorties
-            </span>
-          </div>
-        )}
+        <div className="flex space-x-3">
+          <button 
+            onClick={stockEntryModal.openModal}
+            disabled={loading}
+            className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#00A86B' }}
+          >
+            <ArrowUp className="w-4 h-4 mr-2" />
+            {loading ? 'Traitement...' : 'Entrée Stock'}
+          </button>
+          <button 
+            onClick={stockExitModal.openModal}
+            disabled={loading}
+            className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#DC143C' }}
+          >
+            <ArrowDown className="w-4 h-4 mr-2" />
+            {loading ? 'Traitement...' : 'Sortie Stock'}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -581,296 +534,36 @@ const Movements: React.FC = () => {
           </div>
         </div>
 
-        {!isValidator && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <div 
-                className="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
-                style={{ backgroundColor: '#6B2C9120' }}
-              >
-                <Calendar className="w-6 h-6" style={{ color: '#6B2C91' }} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
-                  {movements.length}
-                </p>
-                <p className="text-sm text-gray-600">Total mouvements</p>
-              </div>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center">
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
+              style={{ backgroundColor: '#6B2C9120' }}
+            >
+              <Calendar className="w-6 h-6" style={{ color: '#6B2C91' }} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold" style={{ color: '#6B2C91' }}>
+                {movements.length}
+              </p>
+              <p className="text-sm text-gray-600">Total mouvements</p>
             </div>
           </div>
-        )}
-        {isValidator && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <div 
-                className="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
-                style={{ backgroundColor: '#00A86B20' }}
-              >
-                <CheckCircle className="w-6 h-6" style={{ color: '#00A86B' }} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" style={{ color: '#00A86B' }}>
-                  {movements.filter(m => m.type === 'exit' && m.status === 'validated').length}
-                </p>
-                <p className="text-sm text-gray-600">Sorties validées</p>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Section spéciale pour les validateurs */}
-      {isValidator && (
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold" style={{ color: '#FF6B35' }}>
-                Sorties en Attente de Validation
-              </h3>
-              <span 
-                className="px-3 py-1 text-sm font-medium text-white rounded-full"
-                style={{ backgroundColor: '#FF6B35' }}
-              >
-                {movements.filter(m => m.type === 'exit' && m.status === 'pending').length} en attente
-              </span>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead style={{ backgroundColor: '#FF6B35' }}>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Article
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Quantité
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Demandeur
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Service
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {movements.filter(m => m.type === 'exit' && m.status === 'pending').map((movement) => (
-                  <tr key={movement.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {movement.articleName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {movement.articleCode}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <strong>{movement.quantity}</strong> {movement.unit}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="text-sm text-gray-900">{movement.userName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="text-sm" style={{ color: '#00A86B' }}>
-                          {movement.service}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                        <div>
-                          <div className="text-sm text-gray-900">{movement.date}</div>
-                          <div className="text-xs text-gray-500">{movement.time}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button 
-                          onClick={() => handleValidateMovement(movement.id)}
-                          disabled={loading}
-                          className="flex items-center px-3 py-1 text-xs font-medium text-white rounded-full hover:opacity-90 disabled:opacity-50"
-                          style={{ backgroundColor: '#00A86B' }}
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Valider
-                        </button>
-                        <button 
-                          onClick={() => handleRejectMovement(movement.id)}
-                          disabled={loading}
-                          className="flex items-center px-3 py-1 text-xs font-medium text-white rounded-full hover:opacity-90 disabled:opacity-50"
-                          style={{ backgroundColor: '#DC143C' }}
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Rejeter
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {movements.filter(m => m.type === 'exit' && m.status === 'pending').length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Aucune sortie en attente de validation</p>
-                <p className="text-xs mt-1">Toutes les sorties ont été traitées</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tableau principal des mouvements */}
-      {!isValidator && (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead style={{ backgroundColor: '#6B2C91' }}>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Article
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Quantité
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Utilisateur
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Service
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Date/Heure
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Statut
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMovements.map((movement) => {
-                  const Icon = getMovementIcon(movement.type);
-                  const color = getMovementColor(movement.type);
-                  
-                  return (
-                    <tr key={movement.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center mr-3"
-                            style={{ backgroundColor: `${color}20` }}
-                          >
-                            <Icon className="w-4 h-4" style={{ color }} />
-                          </div>
-                          <span 
-                            className="text-sm font-medium"
-                            style={{ color }}
-                          >
-                            {movement.type === 'entry' ? 'Entrée' : 'Sortie'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {movement.articleName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {movement.articleCode}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          <strong>{movement.quantity}</strong> {movement.unit}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="text-sm text-gray-900">{movement.userName}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Building className="w-4 h-4 mr-2 text-gray-400" />
-                          <div>
-                            <span 
-                              className="text-sm font-medium"
-                              style={{ color: '#00A86B' }}
-                            >
-                              {movement.service && movement.service !== 'Service non défini' 
-                                ? movement.service 
-                                : 'Service non défini'
-                              }
-                            </span>
-                            {movement.service && movement.service !== 'Service non défini' && (
-                              <div className="text-xs text-gray-500">
-                                Service validé
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          <div>
-                            <div className="text-sm text-gray-900">{movement.date}</div>
-                            <div className="text-xs text-gray-500">{movement.time}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(movement.status)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Modals - Seulement pour les non-validateurs */}
-      {canCreateMovements && (
-        <>
-          <StockEntryModal
-            isOpen={stockEntryModal.isOpen}
-            onClose={stockEntryModal.closeModal}
-            onSave={handleStockEntry}
-            disabled={loading}
-          />
-          <StockExitModal
-            isOpen={stockExitModal.isOpen}
-            onClose={stockExitModal.closeModal}
-            onSave={handleStockExit}
-          />
-        </>
-      )}
+      {/* Modals */}
+      <StockEntryModal
+        isOpen={stockEntryModal.isOpen}
+        onClose={stockEntryModal.closeModal}
+        onSave={handleStockEntry}
+        disabled={loading}
+      />
+      <StockExitModal
+        isOpen={stockExitModal.isOpen}
+        onClose={stockExitModal.closeModal}
+        onSave={handleStockExit}
+      />
     </div>
   );
 };

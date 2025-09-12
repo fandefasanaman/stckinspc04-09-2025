@@ -62,8 +62,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <p className="text-xs text-gray-500">
                 {userData?.role === 'admin' ? 'Administrateur' :
                  userData?.role === 'manager' ? 'Gestionnaire' :
-                 userData?.role === 'supervisor' ? 'Responsable' :
-                 userData?.role === 'validator' ? 'Validateur' : 'Utilisateur'}
+                 userData?.role === 'supervisor' ? 'Responsable' : 'Utilisateur'}
               </p>
             </div>
             <div className="relative">
