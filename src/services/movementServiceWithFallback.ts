@@ -377,9 +377,6 @@ export class MovementServiceWithFallback {
       
       // Programmer une synchronisation ultérieure
       this.scheduleSync('rejectMovement', { movementId, rejectedBy });
-      
-      // Relancer l'erreur pour informer l'utilisateur
-      throw error;
     }
   }
 

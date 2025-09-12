@@ -10,20 +10,36 @@ import {
   Building,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Loader
 } from 'lucide-react';
 import { useFirestoreWithFallback } from '../hooks/useFirestoreWithFallback';
+import { useAuth } from '../contexts/AuthContext';
+import { ExportService } from '../services/exportService';
+import { ReportGeneratorService } from '../services/reportGeneratorService';
 import { Article, Movement, User } from '../types';
 
 const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedFormat, setSelectedFormat] = useState('pdf');
+  const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({
+    period: 'month',
+    format: 'pdf'
+  });
   const [reportStats, setReportStats] = useState({
     totalArticles: 0,
     entriesThisMonth: 0,
     exitsThisMonth: 0,
     activeServices: 0
   });
+
+  const { userData } = useAuth();
 
   // Récupérer les vraies données depuis Firestore
   const { 
@@ -44,6 +60,155 @@ const Reports: React.FC = () => {
     data: users 
   } = useFirestoreWithFallback<User>('users');
 
+  // Fonction pour afficher les messages temporaires
+  const showMessage = (message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      setSuccessMessage(message);
+      setErrorMessage('');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } else {
+      setErrorMessage(message);
+      setSuccessMessage('');
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
+  };
+
+  // Handler pour appliquer les filtres
+  const handleApplyFilters = () => {
+    setLoading(true);
+    console.log('🔧 Application des filtres:', { period: selectedPeriod, format: selectedFormat });
+    
+    try {
+      // Simuler un traitement
+      setTimeout(() => {
+        setAppliedFilters({
+          period: selectedPeriod,
+          format: selectedFormat
+        });
+        setLoading(false);
+        showMessage(`Filtres appliqués: ${periods.find(p => p.value === selectedPeriod)?.label} en format ${formats.find(f => f.value === selectedFormat)?.label}`, 'success');
+        
+        // Recalculer les statistiques avec les nouveaux filtres
+        calculateFilteredStats();
+      }, 1000);
+    } catch (error) {
+      setLoading(false);
+      showMessage('Erreur lors de l\'application des filtres', 'error');
+    }
+  };
+
+  // Calculer les statistiques filtrées
+  const calculateFilteredStats = () => {
+    const filteredMovements = ExportService.filterData(movements, { period: appliedFilters.period });
+    
+    const stats = {
+      totalArticles: articles.length,
+      entriesThisMonth: filteredMovements.filter(m => m.type === 'entry').length,
+      exitsThisMonth: filteredMovements.filter(m => m.type === 'exit').length,
+      activeServices: new Set(users.filter(u => u.status === 'active').map(u => u.service)).size
+    };
+    
+    setReportStats(stats);
+    console.log('📊 Statistiques filtrées recalculées:', stats);
+  };
+
+  // Handler pour exporter les données
+  const handleExportData = async () => {
+    if (!userData) {
+      showMessage('Utilisateur non authentifié', 'error');
+      return;
+    }
+    
+    setExportLoading(true);
+    console.log('📤 Début export des données...');
+    
+    try {
+      // Filtrer les données selon les filtres appliqués
+      const filteredMovements = ExportService.filterData(movements, { period: appliedFilters.period });
+      
+      const exportData = {
+        articles,
+        movements: filteredMovements,
+        users,
+        inventories: [], // Sera ajouté quand les inventaires seront disponibles
+        metadata: {
+          exportDate: new Date().toISOString(),
+          exportedBy: userData.name,
+          filters: appliedFilters,
+          totalRecords: articles.length + filteredMovements.length + users.length
+        }
+      };
+      
+      // Exporter selon le format sélectionné
+      ExportService.exportCompleteData(exportData, appliedFilters.format as 'csv' | 'excel' | 'json');
+      
+      setExportLoading(false);
+      showMessage(`Export réussi: ${exportData.metadata.totalRecords} enregistrements exportés en format ${appliedFilters.format.toUpperCase()}`, 'success');
+      
+    } catch (error: any) {
+      setExportLoading(false);
+      console.error('❌ Erreur lors de l\'export:', error);
+      showMessage('Erreur lors de l\'export des données: ' + error.message, 'error');
+    }
+  };
+
+  // Handler pour générer un rapport spécifique
+  const handleGenerateReport = async (reportType: string) => {
+    if (!userData) {
+      showMessage('Utilisateur non authentifié', 'error');
+      return;
+    }
+    
+    setLoading(true);
+    console.log(`📊 Génération du rapport ${reportType}...`);
+    
+    try {
+      let reportData;
+      
+      switch (reportType) {
+        case 'stock':
+          reportData = ReportGeneratorService.generateStockReport(
+            articles,
+            appliedFilters.period,
+            appliedFilters.format,
+            userData.name
+          );
+          break;
+          
+        case 'movements':
+          reportData = ReportGeneratorService.generateMovementsReport(
+            movements,
+            appliedFilters.period,
+            appliedFilters.format,
+            userData.name
+          );
+          break;
+          
+        case 'consumption':
+          reportData = ReportGeneratorService.generateConsumptionReport(
+            movements,
+            articles,
+            appliedFilters.period,
+            appliedFilters.format,
+            userData.name
+          );
+          break;
+          
+        default:
+          throw new Error(`Type de rapport non supporté: ${reportType}`);
+      }
+      
+      setLoading(false);
+      showMessage(`Rapport ${reportData.title} généré avec succès en format ${appliedFilters.format.toUpperCase()}`, 'success');
+      
+      console.log('✅ Rapport généré:', reportData.summary);
+      
+    } catch (error: any) {
+      setLoading(false);
+      console.error('❌ Erreur lors de la génération du rapport:', error);
+      showMessage('Erreur lors de la génération du rapport: ' + error.message, 'error');
+    }
+  };
   // Calculer les vraies statistiques
   useEffect(() => {
     if (articles.length > 0 || movements.length > 0) {
@@ -69,7 +234,7 @@ const Reports: React.FC = () => {
       setReportStats(stats);
       console.log('📊 Statistiques calculées:', stats);
     }
-  }, [articles, movements, users]);
+  }, [articles, movements, users, appliedFilters]);
 
   const periods = [
     { value: 'week', label: 'Cette semaine' },
@@ -108,55 +273,6 @@ const Reports: React.FC = () => {
     }
   ];
 
-  const handleGenerateReport = (reportType: string) => {
-    console.log(`Génération du rapport ${reportType} pour la période ${selectedPeriod} en format ${selectedFormat}`);
-    
-    // Calculer les données réelles selon le type de rapport
-    let reportData = {};
-    
-    switch (reportType) {
-      case 'stock':
-        reportData = {
-          articles: articles.length,
-          categories: new Set(articles.map(a => a.category)).size,
-          lowStock: articles.filter(a => a.status === 'low').length,
-          outOfStock: articles.filter(a => a.status === 'out').length
-        };
-        break;
-      case 'movements':
-        reportData = {
-          totalMovements: movements.length,
-          entries: movements.filter(m => m.type === 'entry').length,
-          exits: movements.filter(m => m.type === 'exit').length,
-          pending: movements.filter(m => m.status === 'pending').length
-        };
-        break;
-      case 'consumption':
-        const serviceConsumption = movements
-          .filter(m => m.type === 'exit')
-          .reduce((acc, movement) => {
-            acc[movement.service] = (acc[movement.service] || 0) + movement.quantity;
-            return acc;
-          }, {} as Record<string, number>);
-        reportData = { serviceConsumption };
-        break;
-    }
-    
-    console.log(`Données du rapport ${reportType}:`, reportData);
-    alert(`Rapport ${reportType} généré avec les vraies données !`);
-  };
-
-  const handleExportData = () => {
-    const exportData = {
-      articles: articles.length,
-      movements: movements.length,
-      users: users.length,
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log('Export des vraies données:', exportData);
-    alert(`Export des données lancé ! ${articles.length} articles, ${movements.length} mouvements`);
-  };
 
   // Calculer les mouvements récents réels
   const getRecentMovements = () => {
@@ -221,14 +337,37 @@ const Reports: React.FC = () => {
         </div>
         <button 
           onClick={handleExportData}
+          disabled={exportLoading}
           className="flex items-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
           style={{ backgroundColor: '#00A86B' }}
         >
-          <Download className="w-4 h-4 mr-2" />
-          Exporter Données
+          {exportLoading ? (
+            <Loader className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4 mr-2" />
+          )}
+          {exportLoading ? 'Export en cours...' : 'Exporter Données'}
         </button>
       </div>
 
+      {/* Messages de feedback */}
+      {successMessage && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center">
+            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+            <p className="text-sm text-green-800">{successMessage}</p>
+          </div>
+        </div>
+      )}
+      
+      {errorMessage && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+            <p className="text-sm text-red-800">{errorMessage}</p>
+          </div>
+        </div>
+      )}
       {/* Message d'erreur si nécessaire */}
       {articlesError && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -363,14 +502,29 @@ const Reports: React.FC = () => {
 
           <div className="flex items-end">
             <button 
+              onClick={handleApplyFilters}
+              disabled={loading}
               className="w-full px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
               style={{ backgroundColor: '#6B2C91' }}
             >
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Appliquer Filtres
+              {loading ? (
+                <Loader className="w-4 h-4 inline mr-2 animate-spin" />
+              ) : (
+                <Calendar className="w-4 h-4 inline mr-2" />
+              )}
+              {loading ? 'Application...' : 'Appliquer Filtres'}
             </button>
           </div>
         </div>
+        
+        {/* Affichage des filtres appliqués */}
+        {(appliedFilters.period !== 'month' || appliedFilters.format !== 'pdf') && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Filtres actifs:</strong> {periods.find(p => p.value === appliedFilters.period)?.label} • Format: {formats.find(f => f.value === appliedFilters.format)?.label}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Report Types */}
@@ -397,11 +551,16 @@ const Reports: React.FC = () => {
               </p>
               <button 
                 onClick={() => handleGenerateReport(report.id)}
+                disabled={loading}
                 className="w-full flex items-center justify-center px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: report.color }}
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Générer
+                {loading ? (
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                )}
+                {loading ? 'Génération...' : 'Générer'}
               </button>
             </div>
           );
@@ -412,10 +571,10 @@ const Reports: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
-            Mouvements Récents - Données Réelles
+            Mouvements Récents - Données Réelles {appliedFilters.period !== 'month' && `(${periods.find(p => p.value === appliedFilters.period)?.label})`}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            {recentMovements.length} mouvements récents dans la base de données
+            {recentMovements.length} mouvements récents • Filtres: {periods.find(p => p.value === appliedFilters.period)?.label}
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -509,14 +668,15 @@ const Reports: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
-            Analyse par Catégorie - Données Réelles
+            Analyse par Catégorie - Données Réelles {appliedFilters.period !== 'month' && `(${periods.find(p => p.value === appliedFilters.period)?.label})`}
           </h3>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from(new Set(articles.map(a => a.category))).map((category) => {
               const categoryArticles = articles.filter(a => a.category === category);
-              const categoryMovements = movements.filter(m => {
+              const filteredMovements = ExportService.filterData(movements, { period: appliedFilters.period });
+              const categoryMovements = filteredMovements.filter(m => {
                 const article = articles.find(a => a.id === m.articleId);
                 return article?.category === category;
               });
@@ -555,12 +715,13 @@ const Reports: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
-            Activité par Service - Données Réelles
+            Activité par Service - Données Réelles {appliedFilters.period !== 'month' && `(${periods.find(p => p.value === appliedFilters.period)?.label})`}
           </h3>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Array.from(new Set(movements.map(m => m.service).filter(Boolean))).slice(0, 6).map((service) => {
+            {Array.from(new Set(ExportService.filterData(movements, { period: appliedFilters.period }).map(m => m.service).filter(Boolean))).slice(0, 6).map((service) => {
+              const filteredMovements = ExportService.filterData(movements, { period: appliedFilters.period });
               const serviceMovements = movements.filter(m => m.service === service);
               const serviceExits = serviceMovements.filter(m => m.type === 'exit');
               const totalQuantity = serviceExits.reduce((sum, m) => sum + m.quantity, 0);
@@ -596,13 +757,66 @@ const Reports: React.FC = () => {
             })}
           </div>
           
-          {movements.length === 0 && (
+          {ExportService.filterData(movements, { period: appliedFilters.period }).length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Building className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>Aucune activité de service enregistrée</p>
-              <p className="text-xs mt-1">Les données apparaîtront après les premiers mouvements</p>
+              <p className="text-xs mt-1">
+                {movements.length > 0 
+                  ? `Aucune activité pour la période sélectionnée (${periods.find(p => p.value === appliedFilters.period)?.label})`
+                  : 'Les données apparaîtront après les premiers mouvements'
+                }
+              </p>
             </div>
           )}
+        </div>
+      </div>
+      
+      {/* Résumé des actions disponibles */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold" style={{ color: '#6B2C91' }}>
+            Actions Rapides
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => handleGenerateReport('stock')}
+              disabled={loading}
+              className="flex items-center justify-center p-4 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors"
+            >
+              <Package className="w-6 h-6 mr-3" style={{ color: '#6B2C91' }} />
+              <div className="text-left">
+                <p className="font-medium" style={{ color: '#6B2C91' }}>Rapport Stock Rapide</p>
+                <p className="text-xs text-gray-600">État actuel des stocks</p>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => handleGenerateReport('movements')}
+              disabled={loading}
+              className="flex items-center justify-center p-4 border-2 border-dashed border-green-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors"
+            >
+              <TrendingUp className="w-6 h-6 mr-3" style={{ color: '#00A86B' }} />
+              <div className="text-left">
+                <p className="font-medium" style={{ color: '#00A86B' }}>Mouvements Rapide</p>
+                <p className="text-xs text-gray-600">Historique des mouvements</p>
+              </div>
+            </button>
+            
+            <button
+              onClick={handleExportData}
+              disabled={exportLoading}
+              className="flex items-center justify-center p-4 border-2 border-dashed border-yellow-300 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors"
+            >
+              <Download className="w-6 h-6 mr-3" style={{ color: '#D4AF37' }} />
+              <div className="text-left">
+                <p className="font-medium" style={{ color: '#D4AF37' }}>Export Rapide</p>
+                <p className="text-xs text-gray-600">Toutes les données</p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

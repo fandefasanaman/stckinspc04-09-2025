@@ -26,10 +26,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   if (requiredRole) {
     const roleHierarchy = {
       'user': 1,
-      'validator': 2,
-      'supervisor': 3,
-      'manager': 4,
-      'admin': 5
+      'supervisor': 2,
+      'manager': 3,
+      'admin': 4
     };
 
     const userLevel = roleHierarchy[userData.role];

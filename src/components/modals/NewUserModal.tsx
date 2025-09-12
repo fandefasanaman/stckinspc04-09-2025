@@ -22,8 +22,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSave }) 
     { value: 'admin', label: 'Administrateur' },
     { value: 'manager', label: 'Gestionnaire' },
     { value: 'supervisor', label: 'Responsable Service' },
-    { value: 'user', label: 'Utilisateur' },
-    { value: 'validator', label: 'Validateur de Sorties' }
+    { value: 'user', label: 'Utilisateur' }
   ];
 
   const services = [
