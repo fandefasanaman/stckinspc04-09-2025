@@ -93,17 +93,17 @@ export class MovementServiceWithFallback {
           userId: entryData.userId,
           userName: entryData.userName,
           service: entryData.service,
-          supplierId: resolvedSupplierId || entryData.supplierId,
+          supplierId: (resolvedSupplierId || entryData.supplierId) ?? null,
           supplier: resolvedSupplierName || entryData.supplier || article.supplier || '',
-          deliveryNote: entryData.deliveryNote,
-          receivedDate: entryData.receivedDate,
-          batchNumber: entryData.batchNumber,
-          expiryDate: entryData.expiryDate,
+          deliveryNote: entryData.deliveryNote ?? null,
+          receivedDate: entryData.receivedDate ?? null,
+          batchNumber: entryData.batchNumber ?? null,
+          expiryDate: entryData.expiryDate ?? null,
           qualityCheck: entryData.qualityCheck || 'pending',
-          qualityNotes: entryData.qualityNotes,
-          location: entryData.location,
-          reference: entryData.reference,
-          notes: entryData.notes,
+          qualityNotes: entryData.qualityNotes ?? null,
+          location: entryData.location ?? null,
+          reference: entryData.reference ?? null,
+          notes: entryData.notes ?? null,
           status: entryData.qualityCheck === 'failed' ? 'pending' : 'validated',
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -119,9 +119,9 @@ export class MovementServiceWithFallback {
         const articleUpdates: any = {
           currentStock: newStock,
           status,
-          batchNumber: entryData.batchNumber,
-          expiryDate: entryData.expiryDate,
-          location: entryData.location,
+          batchNumber: entryData.batchNumber ?? null,
+          expiryDate: entryData.expiryDate ?? null,
+          location: entryData.location ?? null,
           lastEntry: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -147,6 +147,15 @@ export class MovementServiceWithFallback {
       console.error('- Code erreur:', (error as any).code);
       console.error('- Message:', (error as any).message);
       
+      // Détecter les erreurs de quota et fournir un message convivial
+      const errorCode = (error as any).code;
+      const errorMessage = (error as any).message;
+      let userFriendlyMessage = '';
+      
+      if (errorCode === 'resource-exhausted' || errorMessage?.includes('Quota exceeded')) {
+        userFriendlyMessage = 'Limite de quota Firebase atteinte. Vos données ont été sauvegardées localement et seront synchronisées automatiquement lorsque le quota sera restauré.';
+      }
+      
       // Fallback: sauvegarder localement
       const localId = `local-entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const movementData = {
@@ -162,15 +171,15 @@ export class MovementServiceWithFallback {
         service: entryData.service,
         supplierId: entryData.supplierId,
         supplier: entryData.supplier || '',
-        deliveryNote: entryData.deliveryNote,
-        receivedDate: entryData.receivedDate,
-        batchNumber: entryData.batchNumber,
-        expiryDate: entryData.expiryDate,
+        deliveryNote: entryData.deliveryNote ?? null,
+        receivedDate: entryData.receivedDate ?? null,
+        batchNumber: entryData.batchNumber ?? null,
+        expiryDate: entryData.expiryDate ?? null,
         qualityCheck: entryData.qualityCheck || 'pending',
-        qualityNotes: entryData.qualityNotes,
-        location: entryData.location,
-        reference: entryData.reference,
-        notes: entryData.notes,
+        qualityNotes: entryData.qualityNotes ?? null,
+        location: entryData.location ?? null,
+        reference: entryData.reference ?? null,
+        notes: entryData.notes ?? null,
         status: 'pending' as const,
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -183,6 +192,11 @@ export class MovementServiceWithFallback {
       this.scheduleSync('createStockEntry', entryData);
       
       console.log('💾 Entrée de stock sauvegardée localement avec ID:', localId);
+      
+      // Lancer une erreur avec un message convivial si c'est un problème de quota
+      if (userFriendlyMessage) {
+        throw new Error(userFriendlyMessage);
+      }
       
       return localId;
     }
@@ -252,8 +266,8 @@ export class MovementServiceWithFallback {
           service: exitData.service,
           beneficiary: exitData.beneficiary,
           reason: exitData.reason,
-          reference: exitData.reference,
-          notes: exitData.notes,
+          reference: exitData.reference ?? null,
+          notes: exitData.notes ?? null,
           status: 'pending', // Les sorties nécessitent une validation
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -280,6 +294,15 @@ export class MovementServiceWithFallback {
       console.error('- Code erreur:', (error as any).code);
       console.error('- Message:', (error as any).message);
       
+      // Détecter les erreurs de quota et fournir un message convivial
+      const errorCode = (error as any).code;
+      const errorMessage = (error as any).message;
+      let userFriendlyMessage = '';
+      
+      if (errorCode === 'resource-exhausted' || errorMessage?.includes('Quota exceeded')) {
+        userFriendlyMessage = 'Limite de quota Firebase atteinte. Vos données ont été sauvegardées localement et seront synchronisées automatiquement lorsque le quota sera restauré.';
+      }
+      
       // Fallback: sauvegarder localement
       const localId = `local-exit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const movementData = {
@@ -295,8 +318,8 @@ export class MovementServiceWithFallback {
         service: exitData.service,
         beneficiary: exitData.beneficiary,
         reason: exitData.reason,
-        reference: exitData.reference,
-        notes: exitData.notes,
+        reference: exitData.reference ?? null,
+        notes: exitData.notes ?? null,
         status: 'pending' as const,
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -309,6 +332,11 @@ export class MovementServiceWithFallback {
       this.scheduleSync('createStockExit', exitData);
       
       console.log('💾 Sortie de stock sauvegardée localement avec ID:', localId);
+      
+      // Lancer une erreur avec un message convivial si c'est un problème de quota
+      if (userFriendlyMessage) {
+        throw new Error(userFriendlyMessage);
+      }
       
       return localId;
     }
